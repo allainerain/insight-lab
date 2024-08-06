@@ -28,25 +28,61 @@ class GoalExplorer():
     def __init__(self) -> None:
         pass
 
-    def generate(self, summary: dict, textgen_config: TextGenerationConfig,
-                 text_gen: TextGenerator, n=5, persona: Persona = None) -> list[Goal]:
-        """Generate goals given a summary of data"""
+    def calculate_distribution(self, summary: dict, n: int):
+        dist = {'category': 0, 'date': 0, 'number': 0, 'three': 0, 'two': 0}
+        dtypes = set()
 
-        user_prompt = f"""The number of GOALS to generate is {n}. The goals should be based on the data summary below, \n\n .
-        {summary} \n\n"""
+        # collect the data types from the summary
+        for field in summary['fields']:
+            dtypes.add(field['properties']['dtype'])
 
+        # calculate for the two
+        dist['two'] = n // (len(dtypes) + 2) + 1
+        remaining = n - dist['two']
+        
+        if 'category' in dtypes or 'string' in dtypes:
+            dist['category'] = n // (len(dtypes) + 1)
+        if 'date' in dtypes:
+            dist['date'] = n // (len(dtypes) + 1)
+        if 'number' in dtypes:
+            dist['number'] = n // (len(dtypes) + 1)   
+
+        dist['three'] = remaining - dist['category'] - dist['date'] - dist['number']
+
+        return dist
+    
+    def generate_goals(self, summary: dict, textgen_config: TextGenerationConfig,
+                    text_gen: TextGenerator, questions: list, n: int, persona: Persona, focus: str) -> list[Goal]:
+        
+        if n == 0:
+            return []
+        
+        # ADD PROMPT BASED ON TYPE OR VARIABLE NUMBER
+        if focus in ['category/string', 'date', 'number']:
+            user_prompt = f"""Generate a TOTAL of {n} goals. All the goals MUST FOCUS on a column with a '{focus}' data type."""
+        else:
+            user_prompt = f"""Generate a TOTAL of {n} goals. All the goals must explore the relationship of EXACTLY {focus} variables. """
+
+        # ADD SUMMARY
+        user_prompt += f"\nThe goals should be based on the data summary below, \n\n{summary}\n\n"
+
+        # ADD PERSONA
         if not persona:
             persona = Persona(
                 persona="A highly skilled data analyst who can come up with complex, insightful goals about data",
                 rationale="")
+            
+        user_prompt += f"\nThe generated goals SHOULD BE FOCUSED ON THE INTERESTS AND PERSPECTIVE of a '{persona.persona}' persona, who is interested in complex, insightful goals about the data.\n"
 
-        user_prompt += f"""\n The generated goals SHOULD BE FOCUSED ON THE INTERESTS AND PERSPECTIVE of a '{persona.persona} persona, who is insterested in complex, insightful goals about the data. \n"""
+        # PREVENT DUPLICATION
+        if len(questions) != 0:
+            user_prompt += f"\nDo NOT explore the following questions anymore: {questions}\n"
 
+        # ARRAY OF MESSAGES
         messages = [
             {"role": "system", "content": SYSTEM_INSTRUCTIONS},
-            {"role": "assistant",
-             "content":
-             f"{user_prompt}\n\n {FORMAT_INSTRUCTIONS} \n\n. The generated {n} goals are: \n "}]
+            {"role": "assistant", "content": f"{user_prompt}\n\n{FORMAT_INSTRUCTIONS}\n\nThe generated {n} goals are:\n"}
+        ]
 
         result: list[Goal] = text_gen.generate(messages=messages, config=textgen_config)
 
@@ -61,5 +97,43 @@ class GoalExplorer():
             logger.info(f"Error decoding JSON: {result.text[0]['content']}")
             print(f"Error decoding JSON: {result.text[0]['content']}")
             raise ValueError(
-                "The model did not return a valid JSON object while attempting generate goals. Consider using a larger model or a model with higher max token length.")
+                "The model did not return a valid JSON object while attempting to generate goals. Consider using a larger model or a model with a higher max token length.")
+        
         return result
+    
+    def generate(self, summary: dict, textgen_config: TextGenerationConfig,
+                 text_gen: TextGenerator, n=5, persona: Persona = None) -> list[Goal]:
+        """Generate goals given a summary of data"""
+
+        dist = self.calculate_distribution(summary=summary, n=n)
+        questions = []
+
+        category_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, questions=questions, n=dist['category'], persona=persona, focus="category/string")
+
+        for goal in category_goals:
+            questions.append(goal.question)
+
+        date_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, questions=questions, n=dist['date'], persona=persona, focus="date")
+
+        for goal in date_goals:
+            questions.append(goal.question)
+
+        number_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, questions=questions, n=dist['number'], persona=persona, focus="number")
+
+        for goal in number_goals:
+            questions.append(goal.question)
+
+        three_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, questions=questions, n=dist['three'], persona=persona, focus="three")
+
+        for goal in three_goals:
+            questions.append(goal.question)
+
+        two_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, questions=questions, n=dist['two'], persona=persona, focus="two")
+
+        all_goals = category_goals + date_goals + number_goals + three_goals + two_goals
+        
+        #Fixing the indexing
+        for i in range(len(all_goals)):
+            all_goals[i].index = i
+
+        return all_goals
