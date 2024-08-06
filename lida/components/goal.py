@@ -4,9 +4,10 @@ from lida.utils import clean_code_snippet
 from llmx import TextGenerator
 from lida.datamodel import Goal, TextGenerationConfig, Persona
 
-
+# add prompt to 
+# and why the visualization was chosen
 SYSTEM_INSTRUCTIONS = """
-You are a an experienced data analyst who can generate a given number of insightful GOALS about data, when given a summary of the data, and a specified persona. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate). They must also be relevant to the specified persona. Each goal must include a question, a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED and what we will learn from the visualization). Each goal MUST mention the exact fields from the dataset summary above
+You are a an experienced data analyst who can generate a given number of insightful GOALS about data, when given a summary of the data, and a specified persona. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate). They must also be relevant to the specified persona. Each goal must include a question, a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED and what we will learn from the visualization and why the visualization was chosen). Each goal MUST mention the exact fields from the dataset summary above
 """
 
 FORMAT_INSTRUCTIONS = """
@@ -60,8 +61,9 @@ class GoalExplorer():
         # ADD PROMPT BASED ON TYPE OR VARIABLE NUMBER
         if focus in ['category/string', 'date', 'number']:
             user_prompt = f"""Generate a TOTAL of {n} goals. All the goals MUST FOCUS on a column with a '{focus}' data type."""
-        else:
+        elif focus in ['two', 'three']:
             user_prompt = f"""Generate a TOTAL of {n} goals. All the goals must explore the relationship of EXACTLY {focus} variables. """
+        # to-do: add error
 
         # ADD SUMMARY
         user_prompt += f"\nThe goals should be based on the data summary below, \n\n{summary}\n\n"
