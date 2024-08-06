@@ -17,6 +17,7 @@ from ..components.summarizer import Summarizer
 from ..components.goal import GoalExplorer
 from ..components.persona import PersonaExplorer
 from ..components.executor import ChartExecutor
+from ..components.prompter import Prompter
 from ..components.viz import VizGenerator, VizEditor, VizExplainer, VizEvaluator, VizRepairer, VizRecommender
 
 import lida.web as lida
@@ -48,6 +49,7 @@ class Manager(object):
         self.data = None
         self.infographer = None
         self.persona = PersonaExplorer()
+        self.prompter = Prompter()
 
     def check_textgen(self, config: TextGenerationConfig):
         """
@@ -184,7 +186,13 @@ class Manager(object):
 
         return self.persona.generate(summary=summary, text_gen=self.text_gen,
                                      textgen_config=textgen_config, n=n)
+    def prompt(
+            self, goal, code, textgen_config: TextGenerationConfig = TextGenerationConfig(),
+             n=5):
 
+        return self.prompter.generate(code=code, goal=goal, 
+            text_gen=self.text_gen, textgen_config=textgen_config, n=5)
+    
     def visualize(
         self,
         summary,

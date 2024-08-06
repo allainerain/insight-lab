@@ -52,6 +52,21 @@ class Goal:
 
 
 @dataclass
+class Prompt:
+    """A visualization goal"""
+    question: str
+    index: Optional[int] = 0
+
+    def _repr_markdown_(self):
+        return f"""
+### Prompt {self.index}
+---
+**Question:** {self.question}
+
+"""
+
+
+@dataclass
 class Summary:
     """A summary of a dataset"""
 
