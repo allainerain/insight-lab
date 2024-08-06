@@ -63,7 +63,8 @@ class GoalExplorer():
             user_prompt = f"""Generate a TOTAL of {n} goals. All the goals MUST FOCUS on a column with a '{focus}' data type."""
         elif focus in ['two', 'three']:
             user_prompt = f"""Generate a TOTAL of {n} goals. All the goals must explore the relationship of EXACTLY {focus} variables. """
-        # to-do: add error
+        else:
+            raise ValueError(f"Unsupported focus type: {focus}. Please provide a valid focus type.")
 
         # ADD SUMMARY
         user_prompt += f"\nThe goals should be based on the data summary below, \n\n{summary}\n\n"
