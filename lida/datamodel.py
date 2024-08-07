@@ -55,6 +55,7 @@ class Goal:
 class Prompt:
     """A visualization goal"""
     question: str
+    rationale: str
     index: Optional[int] = 0
 
     def _repr_markdown_(self):
@@ -62,6 +63,8 @@ class Prompt:
 ### Prompt {self.index}
 ---
 **Question:** {self.question}
+
+**Rationale:** {self.rationale}
 
 """
 

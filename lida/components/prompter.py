@@ -5,14 +5,15 @@ from llmx import TextGenerator, TextGenerationConfig, TextGenerationResponse
 from lida.datamodel import Goal, Prompt
 
 SYSTEM_PROMPT = """
-You are a helpful and highly skilled data analyst who is trained to provide helpful, structured questions to prompt the user to gain insights from data visualizations. 
+You are a helpful and highly skilled data analyst who is trained to provide helpful, structured questions to prompt the user to gain insights from a data visualization given their goal. 
+The QUESTIONS YOU ASK MUST INCITE INSIGHTFUL IDEAS AND BE MEANINGFUL (e.g., related to the goal). Each prompting question must include a question and a rationale (JUSTIFICATION FOR WHAT we will learn from the answering the question).
 """
 
-FORMAT_INSTRUCTIONS = FORMAT_INSTRUCTIONS = """
+FORMAT_INSTRUCTIONS = """
 THE OUTPUT MUST BE A CODE SNIPPET OF A VALID LIST OF JSON OBJECTS. IT MUST USE THE FOLLOWING FORMAT:
 
 ```[
-    { "index": 0,  "question": "What is the distribution of X"} ..
+    { "index": 0,  "question": "What is the distribution of X", "rationale": "This tells about "} ..
     ]
 ```
 THE OUTPUT SHOULD ONLY USE THE JSON FORMAT ABOVE.
@@ -27,12 +28,12 @@ class Prompter(object):
         pass
 
     def generate(
-            self, code: str, goal: Goal, 
+            self, goal: Goal, 
             textgen_config: TextGenerationConfig, text_gen: TextGenerator, n=5):
         """Generate questions to prompt the user to interpret the chart given some code and goal"""
 
         user_prompt = f"""
-        The visualization is: {goal.visualization}. The question the visualization wants to answer is: {goal.question}. The rationale for choosing the visualization is: {goal.rationale}. The code of the visualization is: {code}.
+        The visualization is: {goal.visualization}. The question the visualization wants to answer is: {goal.question}. The rationale for choosing the visualization is: {goal.rationale}.
         """
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},

@@ -187,10 +187,10 @@ class Manager(object):
         return self.persona.generate(summary=summary, text_gen=self.text_gen,
                                      textgen_config=textgen_config, n=n)
     def prompt(
-            self, goal, code, textgen_config: TextGenerationConfig = TextGenerationConfig(),
-             n=5):
+            self, goal, textgen_config: TextGenerationConfig = TextGenerationConfig(),
+            n=5):
 
-        return self.prompter.generate(code=code, goal=goal, 
+        return self.prompter.generate(goal=goal, 
             text_gen=self.text_gen, textgen_config=textgen_config, n=5)
     
     def visualize(
