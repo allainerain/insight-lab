@@ -4,8 +4,6 @@ from lida.utils import clean_code_snippet
 from llmx import TextGenerator
 from lida.datamodel import Goal, TextGenerationConfig, Persona
 
-# add prompt to 
-# and why the visualization was chosen
 SYSTEM_INSTRUCTIONS = """
 You are a an experienced data analyst who can generate a given number of insightful GOALS about data, when given a summary of the data, and a specified persona. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate). They must also be relevant to the specified persona. Each goal must include a question, a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED and what we will learn from the visualization and why the visualization was chosen). Each goal MUST mention the exact fields from the dataset summary above
 """
@@ -53,7 +51,7 @@ class GoalExplorer():
         return dist
     
     def generate_goals(self, summary: dict, textgen_config: TextGenerationConfig,
-                    text_gen: TextGenerator, questions: list, n: int, persona: Persona, focus: str) -> list[Goal]:
+                    text_gen: TextGenerator, n: int, persona: Persona, focus: str) -> list[Goal]:
         
         if n == 0:
             return []
@@ -76,10 +74,6 @@ class GoalExplorer():
                 rationale="")
             
         user_prompt += f"\nThe generated goals SHOULD BE FOCUSED ON THE INTERESTS AND PERSPECTIVE of a '{persona.persona}' persona, who is interested in complex, insightful goals about the data.\n"
-
-        # PREVENT DUPLICATION
-        if len(questions) != 0:
-            user_prompt += f"\nDo NOT explore the following questions anymore: {questions}\n"
 
         # ARRAY OF MESSAGES
         messages = [
@@ -109,29 +103,12 @@ class GoalExplorer():
         """Generate goals given a summary of data"""
 
         dist = self.calculate_distribution(summary=summary, n=n)
-        questions = []
 
-        category_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, questions=questions, n=dist['category'], persona=persona, focus="category/string")
-
-        for goal in category_goals:
-            questions.append(goal.question)
-
-        date_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, questions=questions, n=dist['date'], persona=persona, focus="date")
-
-        for goal in date_goals:
-            questions.append(goal.question)
-
-        number_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, questions=questions, n=dist['number'], persona=persona, focus="number")
-
-        for goal in number_goals:
-            questions.append(goal.question)
-
-        three_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, questions=questions, n=dist['three'], persona=persona, focus="three")
-
-        for goal in three_goals:
-            questions.append(goal.question)
-
-        two_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, questions=questions, n=dist['two'], persona=persona, focus="two")
+        category_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['category'], persona=persona, focus="category/string")
+        date_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['date'], persona=persona, focus="date")
+        number_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['number'], persona=persona, focus="number")
+        three_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['three'], persona=persona, focus="three")
+        two_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['two'], persona=persona, focus="two")
 
         all_goals = category_goals + date_goals + number_goals + three_goals + two_goals
         
