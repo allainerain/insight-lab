@@ -6,3 +6,4 @@ from .executor import *
 from .manager import *
 from .persona import *
 from .prompter import *
+from .insight import *
