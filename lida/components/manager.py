@@ -193,13 +193,13 @@ class Manager(object):
             n=5):
 
         return self.prompter.generate(goal=goal, 
-            text_gen=self.text_gen, textgen_config=textgen_config, n=5)
+            text_gen=self.text_gen, textgen_config=textgen_config, n=n)
     
     def insights(
             self, goal, answers, prompts, textgen_config: TextGenerationConfig = TextGenerationConfig(),
             n=5):
         return self.insight.generate(goal=goal, answers=answers, prompts=prompts,
-            text_gen=self.text_gen, textgen_config=textgen_config, n=5)
+            text_gen=self.text_gen, textgen_config=textgen_config, n=n)
     
     def visualize(
         self,
