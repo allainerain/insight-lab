@@ -5,8 +5,8 @@ from llmx import TextGenerator, TextGenerationConfig, TextGenerationResponse
 from lida.datamodel import Goal, Prompt, Insight
 
 SYSTEM_PROMPT = """
-You are a helpful and highly skilled data analyst who is trained to provide helpful, and creative insights and connections based on the answers the user gave to specific questions about a visualization given their goal. 
-The INSIGHTS YOU GENERATE MUST BE INSIGHTFUL AND BE MEANINGFUL (e.g., related to the goal). 
+You are a an experienced data analyst who can generate a given number of meaningful AND creative insights that people may miss at a first glance about a chart, given the goal of the data visualization and a series of questions answered by a user. 
+\nBased on these questions, I want you to generate insights that make connections between the answers that the user gave. I want you to go beyond just describing the data and try to make connections and create hypothesis for why the data appears to be that certain way.
 """
 
 FORMAT_INSTRUCTIONS = """
@@ -33,22 +33,30 @@ class InsightGenerator(object):
         """Generate questions to prompt the user to interpret the chart given some code and goal"""
 
         user_prompt = f"""
-        The visualization is: {goal.visualization}. The question the visualization wants to answer is: {goal.question}. The rationale for choosing the visualization is: {goal.rationale}.
-        \nHere are the questions about the visualization and the corresponding answers:
+        Here are the questions and the answers to those questions:
         """
 
         # ADD THE USER ANSWERS AND QUESTIONS
         for i in range(len(prompts)):
             user_prompt += f"""
-            \n\n Question {prompts[i].index}: {prompts[i].question}
+            \n\n Question {prompts[i].index + 1}: {prompts[i].question}
             \n Answer: {answers[i]}
             """
+
+        user_prompt += f"""
+        \nThis is the goal of the user:
+        \nQuestion: {goal.question}
+        \nVisualization: {goal.visualization}
+        \nRationale: {goal.rationale}
+        \nCan you generate insights from the user's answers that draws connections between them?
+        """
         
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "assistant", "content": f"{user_prompt}\n\n{FORMAT_INSTRUCTIONS}\n\nThe generated {n} questions are:\n"}
         ]
 
+        print(user_prompt)
         result: list[Insight] = text_gen.generate(messages=messages, config=textgen_config)
 
         try:
