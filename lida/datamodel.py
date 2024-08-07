@@ -68,6 +68,19 @@ class Prompt:
 
 """
 
+@dataclass
+class Insight:
+    """A visualization insight"""
+    insight: str
+    index: Optional[int] = 0
+
+    def _repr_markdown_(self):
+        return f"""
+### Insight {self.index}
+---
+**Insight:** {self.insight}
+"""
+
 
 @dataclass
 class Summary:
