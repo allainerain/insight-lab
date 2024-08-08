@@ -21,7 +21,7 @@ THE OUTPUT SHOULD ONLY USE THE JSON FORMAT ABOVE.
 
 logger = logging.getLogger("lida")
 
-class InsightGenerator(object):
+class InsightExplorer(object):
     """Generate insights given some answers to questions"""
 
     def __init__(self) -> None:
@@ -56,7 +56,6 @@ class InsightGenerator(object):
             {"role": "assistant", "content": f"{user_prompt}\n\n{FORMAT_INSTRUCTIONS}\n\nThe generated {n} questions are:\n"}
         ]
 
-        print(user_prompt)
         result: list[Insight] = text_gen.generate(messages=messages, config=textgen_config)
 
         try:
