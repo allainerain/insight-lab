@@ -2,10 +2,14 @@ import json
 import logging
 from lida.utils import clean_code_snippet
 from llmx import TextGenerator
-from lida.datamodel import Goal, TextGenerationConfig, Persona
+from lida.datamodel import Goal, TextGenerationConfig, Persona, Prompt, Insight
 
-SYSTEM_INSTRUCTIONS = """
-You are a an experienced data analyst who can generate a given number of insightful GOALS about data, when given a summary of the data, and a specified persona. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate). They must also be relevant to the specified persona. Each goal must include a question, a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED and what we will learn from the visualization and why the visualization was chosen). Each goal MUST mention the exact fields from the dataset summary above
+SYSTEM_INSTRUCTIONS_GENERAL = """
+You are an experienced data analyst who can generate a given number of insightful GOALS about data, when given a summary of the data, and a specified persona. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate). They must also be relevant to the specified persona. Each goal must include a question, a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED and what we will learn from the visualization and why the visualization was chosen). Each goal MUST mention the exact fields from the dataset summary above
+"""
+
+SYSTEM_INSTRUCTIONS_INSIGHT = """
+You are an experienced data analyst who can generate a given number of insightful GOALS about an insight that a user has about their data that will allow them to explore it deeper and make meaningful connections, when given a summary of the data, their original goal, and a specified persona. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate). They must also be relevant to the specified persona and the insight of the user. Each goal must include a question, a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED and what we will learn from the visualization and why the visualization was chosen). Each goal MUST mention the exact fields from the dataset summary above.
 """
 
 FORMAT_INSTRUCTIONS = """
@@ -50,7 +54,7 @@ class GoalExplorer():
 
         return dist
     
-    def generate_goals(self, summary: dict, textgen_config: TextGenerationConfig,
+    def generate_general_goals(self, summary: dict, textgen_config: TextGenerationConfig,
                     text_gen: TextGenerator, n: int, persona: Persona, focus: str) -> list[Goal]:
         
         if n == 0:
@@ -77,7 +81,7 @@ class GoalExplorer():
 
         # ARRAY OF MESSAGES
         messages = [
-            {"role": "system", "content": SYSTEM_INSTRUCTIONS},
+            {"role": "system", "content": SYSTEM_INSTRUCTIONS_GENERAL},
             {"role": "assistant", "content": f"{user_prompt}\n\n{FORMAT_INSTRUCTIONS}\n\nThe generated {n} goals are:\n"}
         ]
 
@@ -98,22 +102,100 @@ class GoalExplorer():
         
         return result
     
+    def generate_insight_goal(self, summary: dict, textgen_config: TextGenerationConfig, 
+                              insight: Insight, prompts: Prompt, answers: list[str], goal: Goal,
+                              text_gen: TextGenerator, n: int, persona: Persona) -> list[Goal]:
+
+        # ADD SUMMARY
+        user_prompt = f"\nGenerate a TOTAL of {n} goals."
+
+        # ADD THE USER INSIGHT
+        user_prompt += f"\nThis is the user's insight: {insight.insight}"
+
+        # ADD THE USER ORIGINAL GOAL
+        user_prompt += f"""\nThis is the user's original goal:
+        Question: {goal.question}
+        Visualization: {goal.visualization}
+        Rationale: {goal.rationale}
+        """
+
+        # ADD THE QUESTIONS AND ANSWERS
+        user_prompt += f"""\nThese are questions and answers the user has relative to the insight:"""
+
+        for i in range(len(prompts)):
+            user_prompt += f"""
+            Question {prompts[i].index + 1}: {prompts[i].question}
+            Answer: {answers[i]}
+            """
+
+        # ADD THE SUMMARY
+        user_prompt += f"\nThe goals should be based on the data summary below, \n\n{summary}\n\n"
+
+        # ADD PERSONA
+        if not persona:
+            persona = Persona(
+                persona="A highly skilled data analyst who can come up with complex, insightful goals about data",
+                rationale="")
+            
+        user_prompt += f"\nThe generated goals SHOULD BE FOCUSED ON THE INTERESTS AND PERSPECTIVE of a '{persona.persona}' persona, who is interested in complex, insightful goals about the data.\n"
+
+        # ARRAY OF MESSAGES
+        messages = [
+            {"role": "system", "content": SYSTEM_INSTRUCTIONS_INSIGHT},
+            {"role": "assistant", "content": f"\n\n{user_prompt}\n\n{FORMAT_INSTRUCTIONS}\n\nThe generated {n} goals are:\n"}
+        ]
+
+        print(SYSTEM_INSTRUCTIONS_INSIGHT + user_prompt + FORMAT_INSTRUCTIONS)
+        result: list[Goal] = text_gen.generate(messages=messages, config=textgen_config)
+
+        try:
+            json_string = clean_code_snippet(result.text[0]["content"])
+            result = json.loads(json_string)
+            # cast each item in the list to a Goal object
+            if isinstance(result, dict):
+                result = [result]
+            result = [Goal(**x) for x in result]
+        except json.decoder.JSONDecodeError:
+            logger.info(f"Error decoding JSON: {result.text[0]['content']}")
+            print(f"Error decoding JSON: {result.text[0]['content']}")
+            raise ValueError(
+                "The model did not return a valid JSON object while attempting to generate goals. Consider using a larger model or a model with a higher max token length.")
+        
+        return result
+
     def generate(self, summary: dict, textgen_config: TextGenerationConfig,
-                 text_gen: TextGenerator, n=5, persona: Persona = None) -> list[Goal]:
+                text_gen: TextGenerator, n=5, persona: Persona = None,
+                insight: str = "", prompts: Prompt = None, answers: list[str] = [], goal: Goal = None #  required to generate insight goals
+                ) -> list[Goal]:
         """Generate goals given a summary of data"""
 
-        dist = self.calculate_distribution(summary=summary, n=n)
+        # IF NO INSIGHT
+        # Generate general goals
+        if insight == "":
+            dist = self.calculate_distribution(summary=summary, n=n)
 
-        category_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['category'], persona=persona, focus="category/string")
-        date_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['date'], persona=persona, focus="date")
-        number_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['number'], persona=persona, focus="number")
-        three_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['three'], persona=persona, focus="three")
-        two_goals = self.generate_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['two'], persona=persona, focus="two")
+            category_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['category'], persona=persona, focus="category/string")
+            date_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['date'], persona=persona, focus="date")
+            number_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['number'], persona=persona, focus="number")
+            three_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['three'], persona=persona, focus="three")
+            two_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['two'], persona=persona, focus="two")
 
-        all_goals = category_goals + date_goals + number_goals + three_goals + two_goals
+            all_goals = category_goals + date_goals + number_goals + three_goals + two_goals
+            
+            #Fixing the indexing
+            for i in range(len(all_goals)):
+                all_goals[i].index = i
+
+            return all_goals
         
-        #Fixing the indexing
-        for i in range(len(all_goals)):
-            all_goals[i].index = i
+        # If there's an insight
+        # Generate goals related to the insight
+        elif insight != "" and prompts != None and answers != [] and goal != None:
+            print("generating insight goals")
+            insight_goals = self.generate_insight_goal(textgen_config=textgen_config, text_gen=text_gen, n=n, summary=summary, prompts=prompts, insight=insight, answers=answers, goal=goal, persona=persona)
 
-        return all_goals
+            print("returning insight goals")
+            return insight_goals
+        
+        else:
+            raise ValueError("Incomplete or incompatible parameters.")
