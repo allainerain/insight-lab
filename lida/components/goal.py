@@ -5,11 +5,11 @@ from llmx import TextGenerator
 from lida.datamodel import Goal, TextGenerationConfig, Persona, Prompt, Insight
 
 SYSTEM_INSTRUCTIONS_GENERAL = """
-You are an experienced data analyst who can generate a given number of insightful GOALS about data, when given a summary of the data, and a specified persona. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate). They must also be relevant to the specified persona. Each goal must include a question, a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED and what we will learn from the visualization and why the visualization was chosen). Each goal MUST mention the exact fields from the dataset summary above
+You are an experienced data analyst who can generate a given number of insightful GOALS about data, when given a summary of the data, and a specified persona. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate). They must also be relevant to the specified persona. Each goal must include a question, a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED and what we will learn from the visualization and why the visualization was chosen). Each goal MUST mention the exact fields from the dataset summary below.
 """
 
 SYSTEM_INSTRUCTIONS_INSIGHT = """
-You are an experienced data analyst who can generate a given number of insightful GOALS about an insight that a user has about their data that will allow them to explore it deeper and make meaningful connections, when given a summary of the data, their original goal, and a specified persona. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate). They must also be relevant to the specified persona and the insight of the user. Each goal must include a question, a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED and what we will learn from the visualization and why the visualization was chosen). Each goal MUST mention the exact fields from the dataset summary above.
+You are an experienced data analyst who can generate a given number of insightful GOALS about INSIGHTS that a user has about their data that will allow them to explore their INSIGHT deeper and make meaningful connections between them and their data. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate). They must also be relevant to the specified persona AND always be related to the insight of the user. Each goal must include a question (THE QUESTION MUST REFERENCE A PART OF AN INSIGHT), a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED, what we will learn from the visualization AND how the question can allow the user to explore their insights deeper). Each goal MUST mention the exact fields from the dataset summary below.
 """
 
 FORMAT_INSTRUCTIONS = """
@@ -103,14 +103,19 @@ class GoalExplorer():
         return result
     
     def generate_insight_goal(self, summary: dict, textgen_config: TextGenerationConfig, 
-                              insight: Insight, prompts: Prompt, answers: list[str], goal: Goal,
+                              insights: list[Insight], prompts: Prompt, answers: list[str], goal: Goal,
                               text_gen: TextGenerator, n: int, persona: Persona) -> list[Goal]:
 
         # ADD SUMMARY
         user_prompt = f"\nGenerate a TOTAL of {n} goals."
 
         # ADD THE USER INSIGHT
-        user_prompt += f"\nThis is the user's insight: {insight.insight}"
+        user_prompt += f"\nThis is the user's insights: "
+
+        for i in range(len(insights)):
+            user_prompt += f"""
+            Insight {prompts[i].index + 1}: {insights[i].insight}
+            """
 
         # ADD THE USER ORIGINAL GOAL
         user_prompt += f"""\nThis is the user's original goal:
@@ -139,7 +144,25 @@ class GoalExplorer():
             
         user_prompt += f"\nThe generated goals SHOULD BE FOCUSED ON THE INTERESTS AND PERSPECTIVE of a '{persona.persona}' persona, who is interested in complex, insightful goals about the data.\n"
 
-        # ARRAY OF MESSAGES
+        user_prompt += f"""
+        The generated goals SHOULD allow the user to EXPLORE THEIR INSIGHTS DEEPER and allow them to make CONNECTIONS to other information from their dataset. THESE MUST ALL BE IN THE RATIONALE: Be creative and ALWAYS explicity explain why exploring this goal and answering its question is useful relative to the user's insights, what the visualization can do RELATIVE to the insight, and HOW exactly the visualization can help the user explore their insight deeper. Form your own hypothesis and connections. Cite specific parts of the user's rationale or information related to your answers when writing the rational and generating the goal. 
+        """
+
+        user_prompt += f"""
+        These are qualities of a good goal.
+
+        Question
+        - The question explores a specific part of the user's insight. It is not general and instead tries to find reasons that cause the insight (e.g. "How does the average x of y (specific from insight) compare to others when controlling z?"). 
+        - The question is multi-faceted and explores how multiple variables lead to that insight. (e.g. "How does x (from insight) with type y compare to others when controlling the variable z?", "Is there a relationship between x and y, and how does it affect z?")
+        - It is not a general question (e.g. NOT "How does the avarege x vary with different types?").
+
+        Rationale
+        - The rationale is able to explain why it is crucial. (e.g. "This is crucial because x impacts y.")
+        - The rationale is able to provide a hypothesis (e.g. "Using this visualization will show if x is typically y compared to others")
+        - The rationale always ties back into a part of the insight (e.g. "The visualization will help us see if your insight is true or valid", "This will reveal how x affects your insight y.")
+        """
+
+       # ARRAY OF MESSAGES
         messages = [
             {"role": "system", "content": SYSTEM_INSTRUCTIONS_INSIGHT},
             {"role": "assistant", "content": f"\n\n{user_prompt}\n\n{FORMAT_INSTRUCTIONS}\n\nThe generated {n} goals are:\n"}
@@ -165,13 +188,13 @@ class GoalExplorer():
 
     def generate(self, summary: dict, textgen_config: TextGenerationConfig,
                 text_gen: TextGenerator, n=5, persona: Persona = None,
-                insight: str = "", prompts: Prompt = None, answers: list[str] = [], goal: Goal = None #  required to generate insight goals
+                insights: list[Insight] = [], prompts: Prompt = None, answers: list[str] = [], goal: Goal = None #  required to generate insight goals
                 ) -> list[Goal]:
         """Generate goals given a summary of data"""
 
         # IF NO INSIGHT
         # Generate general goals
-        if insight == "":
+        if insights == []:
             dist = self.calculate_distribution(summary=summary, n=n)
 
             category_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['category'], persona=persona, focus="category/string")
@@ -190,11 +213,9 @@ class GoalExplorer():
         
         # If there's an insight
         # Generate goals related to the insight
-        elif insight != "" and prompts != None and answers != [] and goal != None:
-            print("generating insight goals")
-            insight_goals = self.generate_insight_goal(textgen_config=textgen_config, text_gen=text_gen, n=n, summary=summary, prompts=prompts, insight=insight, answers=answers, goal=goal, persona=persona)
+        elif insights != [] and prompts != None and answers != [] and goal != None:
+            insight_goals = self.generate_insight_goal(textgen_config=textgen_config, text_gen=text_gen, n=n, summary=summary, prompts=prompts, insights=insights, answers=answers, goal=goal, persona=persona)
 
-            print("returning insight goals")
             return insight_goals
         
         else:
