@@ -25,7 +25,6 @@ class Summarizer():
     def check_type(self, dtype: str, value):
         """Cast value to right type to ensure it is JSON serializable"""
 
-        print(dtype)
         if "float" in str(dtype):
             try:
                 return float(value)
@@ -50,11 +49,9 @@ class Summarizer():
             for attribute, value in value.items():
                 value_dict[attribute] = value
  
-            print(value_dict)
             return value_dict
  
     def get_column_properties(self, df: pd.DataFrame, n_samples: int = 3) -> list[dict]:
-        print("here")
  
         """Get properties of each column in a pandas DataFrame"""
         properties_list = []
@@ -106,7 +103,12 @@ class Summarizer():
                     properties["max"] = cast_date_col.max()
  
             elif properties["dtype"] == "category":
-                properties["value_counts"] = self.check_type(dtype, df[column].value_counts())
+
+                if (len(df[column].value_counts())) > 10:
+                    properties["value_counts_head"] = self.check_type(dtype, df[column].value_counts().head(5))
+                    properties["value_counts_tail"] = self.check_type(dtype, df[column].value_counts().tail(5))
+                else:
+                    properties["value_counts"] = self.check_type(dtype, df[column].value_counts())
  
             # Add additional properties to the output dictionary
             nunique = df[column].nunique()
