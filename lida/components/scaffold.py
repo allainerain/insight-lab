@@ -18,7 +18,7 @@ class ChartScaffold(object):
 
     def get_template(self, goal: Goal, library: str):
 
-        general_instructions = f"If the solution requires a single value (e.g. max, min, median, first, last etc), ALWAYS add a line (axvline or axhline) to the chart, ALWAYS with a legend containing the single value (formatted with 0.2F). If using a <field> where semantic_type=date, YOU MUST APPLY the following transform before using that column i) convert date fields to date types using data[''] = pd.to_datetime(data[<field>], errors='coerce'), ALWAYS use  errors='coerce' ii) drop the rows with NaT values data = data[pd.notna(data[<field>])] iii) convert field to right time format for plotting.  ALWAYS make sure the x-axis labels are legible (e.g., rotate when needed). Solve the task  carefully by completing ONLY the <imports> AND <stub> section. Given the dataset summary, the plot(data) method should generate a {library} chart ({goal.visualization}) that addresses this goal: {goal.question}. DO NOT WRITE ANY CODE TO LOAD THE DATA. The data is already loaded and available in the variable data."
+        general_instructions = f"If the solution requires a single value (e.g. max, min, median, first, last etc), ALWAYS add a line (axvline or axhline) to the chart, ALWAYS with a legend containing the single value (formatted with 0.2F). If using a <field> where semantic_type=date, YOU MUST APPLY the following transform before using that column i) convert date fields to date types using data[''] = pd.to_datetime(data[<field>], errors='coerce'), ALWAYS use  errors='coerce' ii) drop the rows with NaT values data = data[pd.notna(data[<field>])] iii) convert field to right time format for plotting.  ALWAYS make sure the x-axis labels are legible and visible (e.g., rotate the text and make it smaller when needed, make sure that the text is always within bounds). Solve the task  carefully by completing ONLY the <imports> AND <stub> section. Given the dataset summary, the plot(data) method should generate a {library} chart ({goal.visualization}) that addresses this goal: {goal.question}. DO NOT WRITE ANY CODE TO LOAD THE DATA. The data is already loaded and available in the variable data. ALWAYS make sure that `def plot(data: pd.DataFrame):` is included and that only <imports> and <stub> are modified."
 
         matplotlib_instructions = f" {general_instructions} DO NOT include plt.show(). The plot method must return a matplotlib object (plt). Think step by step. \n"
 
@@ -28,11 +28,14 @@ class ChartScaffold(object):
                 "content": f"  {matplotlib_instructions}. Use BaseMap for charts that require a map. "}
             template = \
                 f"""
+
+# ALWAYS INCLUDE EVERYTHING UNLESS SPECIFIED THAT IT MUST BE EDITED. Include the function definition. 
 import matplotlib.pyplot as plt
 import pandas as pd
-<imports>
-# plan -
-def plot(data: pd.DataFrame):
+#testing comment
+<imports> # only modify this section
+# plan - 
+def plot(data: pd.DataFrame): 
     <stub> # only modify this section
     plt.title('{goal.question}', wrap=True)
     return plt;
@@ -45,13 +48,14 @@ chart = plot(data) # data already contains the data to be plotted. Always includ
 
             template = \
                 f"""
+# ALWAYS INCLUDE EVERYTHING UNLESS SPECIFIED THAT IT MUST BE EDITED. Include the function definition. 
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
-<imports>
+<imports> # only modify this section
 # solution plan
 # i.  ..
-def plot(data: pd.DataFrame):
+def plot(data: pd.DataFrame): #ALWAYS INCLUDE THIS.
 
     <stub> # only modify this section
     plt.title('{goal.question}', wrap=True)
