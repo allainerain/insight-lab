@@ -142,9 +142,6 @@ class Manager(object):
         textgen_config: TextGenerationConfig = TextGenerationConfig(),
         n: int = 5,
         insights: list[Insight] = [],
-        prompts: Prompt = None,
-        answers: list[str] = [],
-        goal: Goal = None,
         persona: Persona = None
     ) -> List[Goal]:
         """
@@ -183,8 +180,7 @@ class Manager(object):
             persona = Persona(persona=persona, rationale="")
 
         return self.goal.generate(summary=summary, text_gen=self.text_gen,
-                                  textgen_config=textgen_config, n=n, persona=persona,
-                                  goal=goal, prompts=prompts, answers=answers, insights=insights
+                                  textgen_config=textgen_config, n=n, persona=persona, insights=insights
                                   )
 
     def personas(
