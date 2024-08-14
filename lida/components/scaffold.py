@@ -48,7 +48,7 @@ chart = plot(data) # data already contains the data to be plotted. Always includ
 
             template = \
                 f"""
-# ALWAYS INCLUDE EVERYTHING UNLESS SPECIFIED THAT IT MUST BE EDITED. Include the function definition. 
+# ALWAYS INCLUDE EVERYTHING UNLESS SPECIFIED THAT IT MUST BE EDITED. ALWAYS INCLUDE THE FUNCTION DEFINITION. 
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
