@@ -11,7 +11,7 @@ import logging
 
 import pandas as pd
 from llmx import llm, TextGenerator
-from lida.datamodel import Goal, Summary, TextGenerationConfig, Persona, Prompt, Insight
+from lida.datamodel import Goal, Summary, TextGenerationConfig, Persona, Insight
 from lida.utils import read_dataframe
 from ..components.summarizer import Summarizer
 from ..components.goal import GoalExplorer
@@ -76,6 +76,7 @@ class Manager(object):
     def summarize(
         self,
         data: Union[pd.DataFrame, str],
+        description: dict,
         file_name="",
         n_samples: int = 3,
         summary_method: str = "default",
@@ -134,7 +135,7 @@ class Manager(object):
         self.data = data
         return self.summarizer.summarize(
             data=self.data, text_gen=self.text_gen, file_name=file_name, n_samples=n_samples,
-            summary_method=summary_method, textgen_config=textgen_config)
+            summary_method=summary_method, description=description, textgen_config=textgen_config)
 
     def goals(
         self,
