@@ -7,13 +7,14 @@ from lida.datamodel import Goal, Prompt, Insight
 SYSTEM_PROMPT = """
 You are a an experienced data analyst who can generate a given number of meaningful AND creative insights that people may miss at a first glance about a chart, given the goal of the data visualization and a series of questions answered by a user. 
 \nBased on these questions, I want you to generate insights that make connections between the answers that the user gave. I want you to go beyond just describing the data and try to make connections and create hypothesis for why the data appears to be that certain way.
+\nThen, I want you to list down the specific prompts and answers that you used that led to those insights. Do it in order of ascending index. 
 """
 
 FORMAT_INSTRUCTIONS = """
 THE OUTPUT MUST BE A CODE SNIPPET OF A VALID LIST OF JSON OBJECTS. IT MUST USE THE FOLLOWING FORMAT:
 
 ```[
-    { "index": 0,  "insight": "The x could indicate ..."} ..
+    { "index": 0,  "insight": "The x could indicate ...", "prompts": ["What is the...?", "How does the...?", ...], "answers": ["It looks like the...", "There is a peak...", ...] }
     ]
 ```
 THE OUTPUT SHOULD ONLY USE THE JSON FORMAT ABOVE.
