@@ -43,8 +43,6 @@ class Summarizer():
                     value_dict[attribute] = value
                 return value_dict
         else:
- 
-            # creating a dict from an object
             value_dict = {}
             for attribute, value in value.items():
                 value_dict[attribute] = value
@@ -134,16 +132,19 @@ class Summarizer():
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "assistant", "content": f"""
-        Annotate the dictionary below. Only return a JSON object.
+        Annotate the dictionary below. Only return a JSON object and MAKE SURE THAT IT IS A VALID JSON OBJECT.
+        Do not change anything else except fields marked with "description". Keep the rest the same.
         {base_summary}
         """},
         ]
  
         response = text_gen.generate(messages=messages, config=textgen_config)
         enriched_summary = base_summary
+        print(response)
         try:
             json_string = clean_code_snippet(response.text[0]["content"])
             enriched_summary = json.loads(json_string)
+            print(enriched_summary)
         except json.decoder.JSONDecodeError:
             error_msg = f"The model did not return a valid JSON object while attempting to generate an enriched data summary. Consider using a default summary or  a larger model with higher max token length. | {response.text[0]['content']}"
             logger.info(error_msg)
@@ -153,7 +154,7 @@ class Summarizer():
  
     def summarize(
             self, data: Union[pd.DataFrame, str],
-            text_gen: TextGenerator, file_name="", n_samples: int = 3,
+            text_gen: TextGenerator, description: dict, file_name="", n_samples: int = 3,
             textgen_config=TextGenerationConfig(n=1),
             summary_method: str = "default", encoding: str = 'utf-8') -> dict:
         """Summarize data from a pandas DataFrame or a file location"""
@@ -181,6 +182,7 @@ class Summarizer():
                 base_summary,
                 text_gen=text_gen,
                 textgen_config=textgen_config)
+            
         elif summary_method == "columns":
             # no enrichment, only column names
             data_summary = {
@@ -188,6 +190,16 @@ class Summarizer():
                 "file_name": file_name,
                 "dataset_description": ""
             }
+
+        # given a user's input, update column
+        elif summary_method == "describe":
+            data_summary["dataset_description"] = description["dataset_description"]
+            
+            for field in data_summary["fields"]:
+                
+                column_name = field["column"]
+                if column_name in description["columns"]:
+                    field["properties"]["description"] = description["columns"][column_name]
  
         data_summary["field_names"] = data.columns.tolist()
         data_summary["file_name"] = file_name
