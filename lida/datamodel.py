@@ -72,13 +72,21 @@ class Prompt:
 class Insight:
     """A visualization insight"""
     insight: str
+    prompts: list[str]
+    answers: list[str]
     index: Optional[int] = 0
+
 
     def _repr_markdown_(self):
         return f"""
 ### Insight {self.index}
 ---
 **Insight:** {self.insight}
+
+**Pairs:**
+
+    **Prompts:** {self.prompts}
+    **Answers:** {self.answers}
 """
 
 
