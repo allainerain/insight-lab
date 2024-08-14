@@ -102,40 +102,20 @@ class GoalExplorer():
         
         return result
     
-    def generate_insight_goal(self, summary: dict, textgen_config: TextGenerationConfig, 
-                              insights: list[Insight], prompts: Prompt, answers: list[str], goal: Goal,
-                              text_gen: TextGenerator, n: int, persona: Persona) -> list[Goal]:
+    def generate_insight_goal(self, textgen_config: TextGenerationConfig, persona: Persona,
+                              insights: list[Insight], text_gen: TextGenerator, n: int):
 
         # ADD SUMMARY
         user_prompt = f"\nGenerate a TOTAL of {n} goals."
 
         # ADD THE USER INSIGHT
-        user_prompt += f"\nThis is the user's insights: "
+        user_prompt += f"\nThese are the user's insights: \n"
 
+        # FOR EACH INSIGHT, ADD THE GOAL AND THE QA PAIRS
         for i in range(len(insights)):
-            user_prompt += f"""
-            Insight {prompts[i].index + 1}: {insights[i].insight}
+            print(insights[i])
+            user_prompt += f"""Insight {i + 1}: {insights[i].insight}
             """
-
-        # ADD THE USER ORIGINAL GOAL
-        user_prompt += f"""\nThis is the user's original goal:
-        Question: {goal.question}
-        Visualization: {goal.visualization}
-        Rationale: {goal.rationale}
-        """
-
-        # ADD THE QUESTIONS AND ANSWERS
-        user_prompt += f"""\nThese are questions and answers the user has relative to the insight:"""
-
-        for i in range(len(prompts)):
-            user_prompt += f"""
-            Question {prompts[i].index + 1}: {prompts[i].question}
-            Answer: {answers[i]}
-            """
-
-        # ADD THE SUMMARY
-        user_prompt += f"\nThe goals should be based on the data summary below, \n\n{summary}\n\n"
-
         # ADD PERSONA
         if not persona:
             persona = Persona(
@@ -143,10 +123,6 @@ class GoalExplorer():
                 rationale="")
             
         user_prompt += f"\nThe generated goals SHOULD BE FOCUSED ON THE INTERESTS AND PERSPECTIVE of a '{persona.persona}' persona, who is interested in complex, insightful goals about the data.\n"
-
-        user_prompt += f"""
-        The generated goals SHOULD allow the user to EXPLORE THEIR INSIGHTS DEEPER and allow them to make CONNECTIONS to other information from their dataset. THESE MUST ALL BE IN THE RATIONALE: Be creative and ALWAYS explicity explain why exploring this goal and answering its question is useful relative to the user's insights, what the visualization can do RELATIVE to the insight, and HOW exactly the visualization can help the user explore their insight deeper. Form your own hypothesis and connections. Cite specific parts of the user's rationale or information related to your answers when writing the rational and generating the goal. 
-        """
 
         user_prompt += f"""
         These are qualities of a good goal.
@@ -160,6 +136,9 @@ class GoalExplorer():
         - The rationale is able to explain why it is crucial. (e.g. "This is crucial because x impacts y.")
         - The rationale is able to provide a hypothesis (e.g. "Using this visualization will show if x is typically y compared to others")
         - The rationale always ties back into a part of the insight (e.g. "The visualization will help us see if your insight is true or valid", "This will reveal how x affects your insight y.")
+        
+        If there is more than one insight, I want you to generate {n} goals that connect ALL of the insights.
+
         """
 
        # ARRAY OF MESSAGES
@@ -188,7 +167,7 @@ class GoalExplorer():
 
     def generate(self, summary: dict, textgen_config: TextGenerationConfig,
                 text_gen: TextGenerator, n=5, persona: Persona = None,
-                insights: list[Insight] = [], prompts: Prompt = None, answers: list[str] = [], goal: Goal = None #  required to generate insight goals
+                insights: list[Insight] = [],
                 ) -> list[Goal]:
         """Generate goals given a summary of data"""
 
@@ -213,8 +192,8 @@ class GoalExplorer():
         
         # If there's an insight
         # Generate goals related to the insight
-        elif insights != [] and prompts != None and answers != [] and goal != None:
-            insight_goals = self.generate_insight_goal(textgen_config=textgen_config, text_gen=text_gen, n=n, summary=summary, prompts=prompts, insights=insights, answers=answers, goal=goal, persona=persona)
+        elif insights != []:
+            insight_goals = self.generate_insight_goal(textgen_config=textgen_config, text_gen=text_gen, n=n, insights=insights, persona=persona)
 
             return insight_goals
         
