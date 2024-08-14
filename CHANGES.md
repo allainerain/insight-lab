@@ -14,13 +14,13 @@ In contrast to other applications of AI in data analysis, the goal of LIDA 2.0 i
 
 ### But, why use LLMs at all?
 - **LLMs are good at automating deterministic tasks.** A part of this is generating code when you know what you want it to do, but don't exactly know how to code it. Having an LLM generate code to create charts and graphs removes the blocker for non-technical people to visualize their data rapidly.
-- **LLMs are good at idea generation.** While LLMs can hallucinate, they have a really large knowledge base. And, they can generate a lot of things. These two can let them make points that you might miss. Having an LLM generate goal suggestions, ask you questions about your visualization and give you insight suggtions can reveal blind spots and let you realize connections that would be difficult to reach on your own.
+- **LLMs are good at brainstorming.** While LLMs can hallucinate, they have a really large knowledge base. And, they can generate a lot of ideas rapidly. Having an LLM generate goal suggestions, ask you questions about your visualization and give you insight suggtions can reveal blind spots and let you realize connections that would be difficult to reach on your own.
 
 ## Changes and Improvements
 
-### 1. Summarizer (`summarization.py`)
+### 1. Summarizer (modified <span style="color:lightblue">summarization.py</span>)
 - Generate better goals with more unique visualizations by adding more properties to specific columns in the summary
-    - Feat (`get_column_properties`): Add more properties to better describe columns with number and category/string data type
+    - Feat (add `get_column_properties`): Add more properties to better describe columns with number and category/string data type
 	    - Columns with `datatype = number`
 		    - Central tendency: mean, median
 		    - Quantile
@@ -28,25 +28,25 @@ In contrast to other applications of AI in data analysis, the goal of LIDA 2.0 i
 	    - Columns with `datatype = category/string`
 		    - Value counts (only add value counts for head and tail if there are more than 10 unique values)
 - Handle domain specificity by allowing the user to specify dataset and column descriptions for added context.
-    - Feat(`summarize`): Allow user to add custom descriptions for dataset and columns. This is to support domain specific datasets, which `enrich()` may not accurately describe.
+    - Feat(modify `summarize`): Allow user to add custom descriptions for dataset and columns. This is to support domain specific datasets, which `enrich()` may not accurately describe.
 
-### 2. Goal Explorer (goal.py)
+### 2. Goal Explorer (modified <span style="color:lightblue">goal.py</span>)
 - Generate a more diverse set of goals by generating sub goals, then combining all of them. Sub goals are goals that have a focus (focus on generating goals involving columns with data type category/number/date, goals involving 3 variables, etc.)
-    - Feat (`calculate_distribution`): Given the number of goal suggestions the user wants, it calculates how many candidate goals per sub goal should be generated
-    - Feat (`generate_general_goals`): Given the summary and a target focus (focus on generating goals related to a column with a specific datatype, goals that relate 3 variables etc.)
+    - Feat (add `calculate_distribution`): Given the number of goal suggestions the user wants, it calculates how many candidate goals per sub goal should be generated
+    - Feat (add `generate_general_goals`): Given the summary and a target focus (focus on generating goals related to a column with a specific datatype, goals that relate 3 variables etc.)
 - Enable the user to gain compounded insights by generating goals related to specific insights a user has about their data 
-    - Feat (`generate_insight_goals`): Generate candidate goals related to the user's insight
+    - Feat (add `generate_insight_goals`): Generate candidate goals related to the user's insight
 - Explain relevance of a suggested visualization with a more comprehensive rationale.
-    - Fix (`SYSTEM_PROMPT`): Made rationale more insightful by specifying to include why the visualization was chosen for the job 
+    - Fix (modify `SYSTEM_PROMPT`): Made rationale more insightful by specifying to include why the visualization was chosen for the job 
 
 ### 3. Viz Generator
 - Less buggy code generation 
-    - Fix (`scaffold.py`): Modified prompt to reduce occurance of `'returning outside function definition'` error 
+    - Fix (modify `scaffold.py`): Modified prompt to reduce occurance of `'returning outside function definition'` error 
 
-### 4. Prompter (prompt.py)
+### 4. Prompter (created <span style="color:lightgreen">prompt.py</span>)
 - Guide users to critically analyze their data by generating prompts. Prompts are questions about the visualization that prod the user to make observations about their data in the correct direction. The user is supposed to give answers to the prompts.
     - Feat: Created a Prompter. Given the user's goal and visualization, it will generate questions to ask to the user about the visualization. 
 
-### 5. Insight Explorer (insight.py)
+### 5. Insight Explorer (created <span style="color:lightgreen">insight.py</span>)
 - Allow the users to gain inspiration for insights they can take away from their visualization by generating insight suggestions. This works similar to the Goal Explorer, which generates goal suggestions for the user to explore. 
     - Feat: Created an Insight Explorer. Given the user's answers to the prompts, the prompts from the prompter, and the user's original goal, generate suggestion insights. Suggestion insights consist of the insight and related prompt and answer pairs that relate to the generated insight.
