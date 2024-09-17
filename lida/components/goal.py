@@ -5,11 +5,11 @@ from llmx import TextGenerator
 from lida.datamodel import Goal, TextGenerationConfig, Persona, Prompt, Insight
 
 SYSTEM_INSTRUCTIONS_GENERAL = """
-You are an experienced data analyst who can generate a given number of insightful GOALS about data, when given a summary of the data, and a specified persona. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate). They must also be relevant to the specified persona. Each goal must include a question, a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED and what we will learn from the visualization and why the visualization was chosen). Each goal MUST mention the exact fields from the dataset summary below.
+You are an experienced data analyst who can generate a given number of insightful GOALS about data, when given a summary of the data, and a specified persona. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate) AND PERFORM THE APPROPRIATE AGGREGATIONS (e.g., if the property "groupable" is true for a column, then you must do a group by. For instance, if data is groupable, then the suggestion should be similar to box plot of DOWNLOAD_PERCEIVED_THROUGHPUT across different REGIONS for each GROUP BY(DATE)). They must also be relevant to the specified persona. Each goal must include a question, a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED and what we will learn from the visualization and why the visualization was chosen). Each goal MUST mention the exact fields from the dataset summary below.
 """
 
 SYSTEM_INSTRUCTIONS_INSIGHT = """
-You are an experienced data analyst who can generate a given number of insightful GOALS about INSIGHTS that a user has about their data that will allow them to explore their INSIGHT deeper and make meaningful connections between them and their data. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate). They must also be relevant to the specified persona AND always be related to the insight of the user. Each goal must include a question (THE QUESTION MUST REFERENCE A PART OF AN INSIGHT), a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED, what we will learn from the visualization AND how the question can allow the user to explore their insights deeper). Each goal MUST mention the exact fields from the dataset summary below.
+You are an experienced data analyst who can generate a given number of insightful GOALS about INSIGHTS that a user has about their data that will allow them to explore their INSIGHT deeper and make meaningful connections between them and their data. The VISUALIZATIONS YOU RECOMMEND MUST FOLLOW VISUALIZATION BEST PRACTICES (e.g., must use bar charts instead of pie charts for comparing quantities) AND BE MEANINGFUL (e.g., plot longitude and latitude on maps where appropriate) AND PERFORM THE APPROPRIATE AGGREGATIONS (e.g., if the propery "groupable" is true for a column, then you must do a group by). They must also be relevant to the specified persona, always be related to the insight of the user AND always only contain fields/columns from the summary provided. Each goal must include a question (THE QUESTION MUST REFERENCE A PART OF AN INSIGHT), a visualization (THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY), and a rationale (JUSTIFICATION FOR WHICH dataset FIELDS ARE USED, what we will learn from the visualization AND how the question can allow the user to explore their insights deeper). Each goal MUST mention the exact fields from the dataset summary below.
 """
 
 FORMAT_INSTRUCTIONS = """
@@ -65,6 +65,8 @@ class GoalExplorer():
             user_prompt = f"""Generate a TOTAL of {n} goals. All the goals MUST FOCUS on a column with a '{focus}' data type."""
         elif focus in ['two', 'three']:
             user_prompt = f"""Generate a TOTAL of {n} goals. All the goals must explore the relationship of EXACTLY {focus} variables. """
+        elif focus == "none":
+            user_prompt = f"""Generate a TOTAL of {n} goals."""
         else:
             raise ValueError(f"Unsupported focus type: {focus}. Please provide a valid focus type.")
 
@@ -102,7 +104,7 @@ class GoalExplorer():
         
         return result
     
-    def generate_insight_goal(self, textgen_config: TextGenerationConfig, persona: Persona,
+    def generate_insight_goal(self, textgen_config: TextGenerationConfig, persona: Persona, summary: dict,
                               insights: list[Insight], text_gen: TextGenerator, n: int):
 
         # ADD SUMMARY
@@ -130,7 +132,15 @@ class GoalExplorer():
         Question
         - The question explores a specific part of the user's insight. It is not general and instead tries to find reasons that cause the insight (e.g. "How does the average x of y (specific from insight) compare to others when controlling z?"). 
         - The question is multi-faceted and explores how multiple variables lead to that insight. (e.g. "How does x (from insight) with type y compare to others when controlling the variable z?", "Is there a relationship between x and y, and how does it affect z?")
-        - It is not a general question (e.g. NOT "How does the avarege x vary with different types?").
+        - It is not a general question (e.g. NOT "How does the averege x vary with different types?").
+        - The question NEVER asks anything that canot be answered from the columns in the summary (e.g. "How does x (not found in summary) affect y?)
+        - THE QUESTION MUST REFERENCE THE EXACT COLUMN FIELDS FROM THE SUMMARY
+        
+        Visualization
+        - THE VISUALIZATION MUST REFERENCE THE EXACT COLUMN FIEDLS FROM THE SUMMARY
+        - THE VISUALIZATION descibes step by step what the chart is about and how it is achieved mention andy aggregations and groupings
+        - CHECK IF THE COLUMNS ARE GROUPABLE BASED ON ITS PROPERTIES IN THE SUMMARY (groupable==TRUE). If it's true, then suggest the appropriate grouping and aggregation in the visualization (e.g. data=data.grouby(
+        DATE').agg("""+"""{"""+""";SOME_COLUMN':'mean'"""+"""}"""+"""))
 
         Rationale
         - The rationale is able to explain why it is crucial. (e.g. "This is crucial because x impacts y.")
@@ -138,8 +148,9 @@ class GoalExplorer():
         - The rationale always ties back into a part of the insight (e.g. "The visualization will help us see if your insight is true or valid", "This will reveal how x affects your insight y.")
         
         If there is more than one insight, I want you to generate {n} goals that connect ALL of the insights.
-
         """
+
+        user_prompt += f"\nThe goals should be based on the data summary below: \n\n{summary}\n\n"
 
        # ARRAY OF MESSAGES
         messages = [
@@ -147,7 +158,6 @@ class GoalExplorer():
             {"role": "assistant", "content": f"\n\n{user_prompt}\n\n{FORMAT_INSTRUCTIONS}\n\nThe generated {n} goals are:\n"}
         ]
 
-        print(SYSTEM_INSTRUCTIONS_INSIGHT + user_prompt + FORMAT_INSTRUCTIONS)
         result: list[Goal] = text_gen.generate(messages=messages, config=textgen_config)
 
         try:
@@ -167,33 +177,40 @@ class GoalExplorer():
 
     def generate(self, summary: dict, textgen_config: TextGenerationConfig,
                 text_gen: TextGenerator, n=5, persona: Persona = None,
-                insights: list[Insight] = [],
+                insights: list[Insight] = [], explore: bool = True,
                 ) -> list[Goal]:
         """Generate goals given a summary of data"""
 
         # IF NO INSIGHT
         # Generate general goals
         if insights == []:
-            dist = self.calculate_distribution(summary=summary, n=n)
 
-            category_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['category'], persona=persona, focus="category/string")
-            date_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['date'], persona=persona, focus="date")
-            number_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['number'], persona=persona, focus="number")
-            three_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['three'], persona=persona, focus="three")
-            two_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['two'], persona=persona, focus="two")
+            if explore:
+                dist = self.calculate_distribution(summary=summary, n=n)
 
-            all_goals = category_goals + date_goals + number_goals + three_goals + two_goals
-            
-            #Fixing the indexing
-            for i in range(len(all_goals)):
-                all_goals[i].index = i
+                category_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['category'], persona=persona, focus="category/string")
+                date_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['date'], persona=persona, focus="date")
+                number_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['number'], persona=persona, focus="number")
+                three_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['three'], persona=persona, focus="three")
+                two_goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=dist['two'], persona=persona, focus="two")
 
-            return all_goals
+                all_goals = category_goals + date_goals + number_goals + three_goals + two_goals
+                
+                #Fixing the indexing
+                for i in range(len(all_goals)):
+                    all_goals[i].index = i
+
+                return all_goals
         
+            elif not explore:
+                goals = self.generate_general_goals(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=n, persona=persona, focus="none")
+
+                return goals
+            
         # If there's an insight
         # Generate goals related to the insight
         elif insights != []:
-            insight_goals = self.generate_insight_goal(textgen_config=textgen_config, text_gen=text_gen, n=n, insights=insights, persona=persona)
+            insight_goals = self.generate_insight_goal(summary=summary, textgen_config=textgen_config, text_gen=text_gen, n=n, insights=insights, persona=persona)
 
             return insight_goals
         

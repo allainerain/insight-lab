@@ -2,7 +2,7 @@ import json
 import logging
 from lida.utils import clean_code_snippet
 from llmx import TextGenerator, TextGenerationConfig, TextGenerationResponse
-from lida.datamodel import Goal, Prompt, Insight
+from lida.datamodel import Goal, Prompt, Insight, Persona
 
 SYSTEM_PROMPT = """
 You are a an experienced data analyst who can generate a given number of meaningful AND creative insights that people may miss at a first glance about a chart, given the goal of the data visualization and a series of questions answered by a user. 
@@ -14,7 +14,7 @@ FORMAT_INSTRUCTIONS = """
 THE OUTPUT MUST BE A CODE SNIPPET OF A VALID LIST OF JSON OBJECTS. IT MUST USE THE FOLLOWING FORMAT:
 
 ```[
-    { "index": 0,  "insight": "The x could indicate ...", "prompts": ["What is the...?", "How does the...?", ...], "answers": ["It looks like the...", "There is a peak...", ...] }
+    { "index": 0,  "insight": "The x could indicate (rest of insight)", "prompts": ["What is the (rest of prompt)?", "How does the (rest of prompt)?", ...], "answers": ["It looks like the (rest of answer)", "There is a peak (rest of answer)", ...] }
     ]
 ```
 THE OUTPUT SHOULD ONLY USE THE JSON FORMAT ABOVE.
@@ -30,7 +30,7 @@ class InsightExplorer(object):
 
     def generate(
             self, goal: Goal, answers: list[str], prompts: Prompt, 
-            textgen_config: TextGenerationConfig, text_gen: TextGenerator, n=5):
+            textgen_config: TextGenerationConfig, text_gen: TextGenerator, persona:Persona = None, n=5, description: dict = {}):
         """Generate questions to prompt the user to interpret the chart given some code and goal"""
 
         user_prompt = f"""
@@ -49,9 +49,21 @@ class InsightExplorer(object):
         \nQuestion: {goal.question}
         \nVisualization: {goal.visualization}
         \nRationale: {goal.rationale}
-        \nCan you generate insights from the user's answers that draws connections between them?
+        \nCan you generate A TOTAL OF {n} INSIGHTS from the user's answers that draws connections between them?
         """
         
+        # ADD PERSONA
+        if not persona:
+            persona = Persona(
+                persona="A highly skilled data analyst who can come up with complex, insightful goals about data",
+                rationale="")
+            
+        user_prompt += f"\nThe generated insights SHOULD TRY TO BE FOCUSED ON THE INTERESTS AND PERSPECTIVE of a '{persona.persona}' persona, who is interested in complex, insightful insights about the data.\n"
+
+        if description != {}:
+            user_prompt += "These are the descriptions of the columns of the dataset. Try to make connections with the descriptions provided below with your hypothesis if it's applicable when generating the insights. Use the dataset columns to provide some sort of explanation as to why you're suggesting that insight. When suggesting, explain why you are saying that the relationship is so."
+            user_prompt += str(description)
+            
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "assistant", "content": f"{user_prompt}\n\n{FORMAT_INSTRUCTIONS}\n\nThe generated {n} questions are:\n"}
