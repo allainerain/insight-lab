@@ -76,7 +76,7 @@ class Manager(object):
     def summarize(
         self,
         data: Union[pd.DataFrame, str],
-        description: dict,
+        description: dict = {},
         file_name="",
         n_samples: int = 3,
         summary_method: str = "default",
@@ -143,7 +143,8 @@ class Manager(object):
         textgen_config: TextGenerationConfig = TextGenerationConfig(),
         n: int = 5,
         insights: list[Insight] = [],
-        persona: Persona = None
+        persona: Persona = None,
+        explore: bool = True
     ) -> List[Goal]:
         """
         Generate goals based on a summary.
@@ -175,13 +176,19 @@ class Manager(object):
         """
         self.check_textgen(config=textgen_config)
 
+        for i in range(len(insights)):
+            if isinstance(insights[i], dict):
+                insights[i] = Insight(**insights[i])
+            if isinstance(insights[i], str):
+                insights[i] = Insight(insight=insights[i], prompts=[], answers=[], index=i)
+                
         if isinstance(persona, dict):
             persona = Persona(**persona)
         if isinstance(persona, str):
             persona = Persona(persona=persona, rationale="")
 
         return self.goal.generate(summary=summary, text_gen=self.text_gen,
-                                  textgen_config=textgen_config, n=n, persona=persona, insights=insights
+                                  textgen_config=textgen_config, n=n, persona=persona, insights=insights, explore=explore
                                   )
 
     def personas(
@@ -194,14 +201,30 @@ class Manager(object):
     def prompt(
             self, goal, textgen_config: TextGenerationConfig = TextGenerationConfig(),
             n=5):
+        
+        if isinstance(goal, dict):
+            goal = Goal(**goal)
+        if isinstance(goal, str):
+            goal = Goal(question=goal, visualization=goal, rationale="")
 
         return self.prompter.generate(goal=goal, 
             text_gen=self.text_gen, textgen_config=textgen_config, n=n)
     
     def insights(
-            self, goal, answers, prompts, textgen_config: TextGenerationConfig = TextGenerationConfig(),
+            self, goal, answers, prompts, description: dict={}, persona: Persona = None, textgen_config: TextGenerationConfig = TextGenerationConfig(),
             n=5):
-        return self.insight.generate(goal=goal, answers=answers, prompts=prompts,
+        
+        if isinstance(goal, dict):
+            goal = Goal(**goal)
+        if isinstance(goal, str):
+            goal = Goal(question=goal, visualization=goal, rationale="")
+
+        if isinstance(persona, dict):
+            persona = Persona(**persona)
+        if isinstance(persona, str):
+            persona = Persona(persona=persona, rationale="")
+        
+        return self.insight.generate(goal=goal, answers=answers, prompts=prompts, persona=persona, description=description,
             text_gen=self.text_gen, textgen_config=textgen_config, n=n)
     
     def visualize(

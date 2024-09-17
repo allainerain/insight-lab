@@ -3,7 +3,7 @@ import logging
 from typing import Union
 import pandas as pd
 from lida.utils import clean_code_snippet, read_dataframe
-from lida.datamodel import TextGenerationConfig
+from lida.datamodel import TextGenerationConfig, Summary
 from llmx import TextGenerator
 import warnings
  
@@ -101,7 +101,6 @@ class Summarizer():
                     properties["max"] = cast_date_col.max()
  
             elif properties["dtype"] == "category":
-
                 if (len(df[column].value_counts())) > 10:
                     properties["value_counts_head"] = self.check_type(dtype, df[column].value_counts().head(5))
                     properties["value_counts_tail"] = self.check_type(dtype, df[column].value_counts().tail(5))
@@ -116,6 +115,7 @@ class Summarizer():
                 samples = pd.Series(non_null_values).sample(
                     n_samples, random_state=42).tolist()
                 properties["samples"] = samples
+            properties["groupable"] = nunique != len(df)
             properties["num_unique_values"] = nunique
             properties["semantic_type"] = ""
             properties["description"] = ""
