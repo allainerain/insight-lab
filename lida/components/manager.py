@@ -144,7 +144,7 @@ class Manager(object):
         n: int = 5,
         insights: list[Insight] = [],
         persona: Persona = None,
-        explore: bool = True
+        explore: list = []
     ) -> List[Goal]:
         """
         Generate goals based on a summary.
