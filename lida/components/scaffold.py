@@ -2,11 +2,6 @@ from dataclasses import asdict
 
 from lida.datamodel import Goal
 
-
-# if len(plt.xticks()[0])) > 20 assuming plot is made with plt or
-# len(ax.get_xticks()) > 20 assuming plot is made with ax, set a max of 20
-# ticks on x axis, ticker.MaxNLocator(20)
-
 class ChartScaffold(object):
     """Return code scaffold for charts in multiple visualization libraries"""
 
@@ -20,7 +15,8 @@ class ChartScaffold(object):
 
         general_instructions = f"""If the solution requires a single value (e.g. max, min, median, first, last etc), ALWAYS add a line (axvline or axhline) to the chart, ALWAYS with a legend containing the single value (formatted with 0.2F). If using a <field> where semantic_type=date, YOU MUST APPLY the following transform before using that column i) convert date fields to date types using data[''] = pd.to_datetime(data[<field>], errors='coerce'), ALWAYS use  errors='coerce' ii) drop the rows with NaT values data = data[pd.notna(data[<field>])] iii) convert field to right time format for plotting.  ALWAYS make sure the x-axis labels are legible and visible (e.g., rotate the text and make it smaller when needed, make sure that the text is always within bounds). Solve the task  carefully by completing ONLY the <imports> AND <stub> section. Given the dataset summary, the plot(data) method should generate a {library} chart ({goal.visualization}) that addresses this goal: {goal.question}. DO NOT WRITE ANY CODE TO LOAD THE DATA. The data is already loaded and available in the variable data. ALWAYS make sure that `def plot(data: pd.DataFrame):` is included and that only <imports> and <stub> are modified.
         
-        If the fields are groupable (check their properties in the summary. They are groupable if the property "groupable" == True), group by and aggregate them properly and prevent 'cannot reindex on an acis with duplicate labels' errors (e.g. trying to plot values on the dates where there are multuple values with the same date will bedata=data.groupby('DATE').agg("""+"""{"""+"""'SOME_COLUMN':'mean'"""+"""}""" +""")).
+        If the fields are groupable (check their properties in the summary (they are groupable if the property "groupable" == True).
+        Group by and aggregate them properly and prevent 'cannot reindex on an axis with duplicate labels' errors (e.g. trying to plot values on the dates where there are multuple values with the same date will bedata=data.groupby('DATE').agg("""+"""{"""+"""'SOME_COLUMN':'mean'"""+"""}""" +""")).
         """
 
         matplotlib_instructions = f""" {general_instructions} DO NOT include plt.show(). The plot method must return a matplotlib object (plt). Think step by step. \n"""
@@ -32,7 +28,7 @@ class ChartScaffold(object):
             template = \
                 f"""
 
-# ALWAYS INCLUDE EVERYTHING UNLESS SPECIFIED THAT IT MUST BE EDITED. Include the function definition. 
+# ALWAYS INCLUDE EVERYTHING UNLESS SPECIFIED THAT IT MUST BE EDITED. ALWAYS INCLUDE THE FUNCTION DEFINITION. 
 import matplotlib.pyplot as plt
 import pandas as pd
 #testing comment
@@ -75,6 +71,7 @@ chart = plot(data) # data already contains the data to be plotted. Always includ
 
             template = \
                 f"""
+# ALWAYS INCLUDE EVERYTHING UNLESS SPECIFIED THAT IT MUST BE EDITED. ALWAYS INCLUDE THE FUNCTION DEFINITION. 
 import plotnine as p9
 <imports>
 def plot(data: pd.DataFrame):
@@ -91,6 +88,7 @@ chart = plot(data) # data already contains the data to be plotted. Always includ
             }
             template = \
                 """
+# ALWAYS INCLUDE EVERYTHING UNLESS SPECIFIED THAT IT MUST BE EDITED. ALWAYS INCLUDE THE FUNCTION DEFINITION. 
 import altair as alt
 <imports>
 def plot(data: pd.DataFrame):
@@ -106,6 +104,7 @@ chart = plot(data) # data already contains the data to be plotted.  Always inclu
             }
             template = \
                 """
+# ALWAYS INCLUDE EVERYTHING UNLESS SPECIFIED THAT IT MUST BE EDITED. ALWAYS INCLUDE THE FUNCTION DEFINITION. 
 import plotly.express as px
 <imports>
 def plot(data: pd.DataFrame):
