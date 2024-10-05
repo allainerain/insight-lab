@@ -16,7 +16,7 @@ You must return an updated JSON dictionary without any preamble or explanation.
 """
  
 logger = logging.getLogger("lida")
- 
+
  
 class Summarizer():
     def __init__(self) -> None:
@@ -56,8 +56,32 @@ class Summarizer():
         for column in df.columns:
             dtype = df[column].dtype
             properties = {}
+
+            """Check the datatype of each column and set the property datatype"""
             if dtype in [int, float, complex]:
                 properties["dtype"] = "number"
+            elif dtype == bool:
+                properties["dtype"] = "boolean"
+            elif dtype == object:
+                try:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        pd.to_datetime(df[column], errors='raise')
+                        properties["dtype"] = "date"
+                except ValueError:
+                    if df[column].nunique() / len(df[column]) < 0.5:
+                        properties["dtype"] = "category"
+                    else:
+                        properties["dtype"] = "string"
+            elif pd.api.types.is_categorical_dtype(df[column]):
+                properties["dtype"] = "category"
+            elif pd.api.types.is_datetime64_any_dtype(df[column]):
+                properties["dtype"] = "date"
+            else:
+                properties["dtype"] = str(dtype)
+ 
+            """Add additional properties based on datatype"""
+            if properties["dtype"] == "number":
                 properties["std"] = self.check_type(dtype, df[column].std())
                 properties["min"] = self.check_type(dtype, df[column].min())
                 properties["max"] = self.check_type(dtype, df[column].max())
@@ -65,32 +89,6 @@ class Summarizer():
                 properties["mean"] = self.check_type(dtype, df[column].mean())
                 properties["median"] = self.check_type(dtype, df[column].median())
                 properties["kurtosis"] = self.check_type(dtype, df[column].kurt())
- 
-            elif dtype == bool:
-                properties["dtype"] = "boolean"
-            elif dtype == object:
-                # Check if the string column can be cast to a valid datetime
-                try:
-                    with warnings.catch_warnings():
-                        warnings.simplefilter("ignore")
-                        pd.to_datetime(df[column], errors='raise')
-                        properties["dtype"] = "date"
-                except ValueError:
-                    # Check if the string column has a limited number of values
-                    # Optimizable
-                    if df[column].nunique() / len(df[column]) < 0.5:
-                        properties["dtype"] = "category"
-                    else:
-                        properties["dtype"] = "string"
-            elif pd.api.types.is_categorical_dtype(df[column]):
-                properties["dtype"] = "category"
- 
-            elif pd.api.types.is_datetime64_any_dtype(df[column]):
-                properties["dtype"] = "date"
-            else:
-                properties["dtype"] = str(dtype)
- 
-            # add min max if dtype is date
             if properties["dtype"] == "date":
                 try:
                     properties["min"] = df[column].min()
@@ -99,7 +97,6 @@ class Summarizer():
                     cast_date_col = pd.to_datetime(df[column], errors='coerce')
                     properties["min"] = cast_date_col.min()
                     properties["max"] = cast_date_col.max()
- 
             elif properties["dtype"] == "category":
                 if (len(df[column].value_counts())) > 10:
                     properties["value_counts_head"] = self.check_type(dtype, df[column].value_counts().head(5))
@@ -107,7 +104,7 @@ class Summarizer():
                 else:
                     properties["value_counts"] = self.check_type(dtype, df[column].value_counts())
  
-            # Add additional properties to the output dictionary
+            """Add the following properties to all data types"""
             nunique = df[column].nunique()
             if "samples" not in properties:
                 non_null_values = df[column][df[column].notnull()].unique()
@@ -126,6 +123,7 @@ class Summarizer():
  
     def enrich(self, base_summary: dict, text_gen: TextGenerator,
                textgen_config: TextGenerationConfig) -> dict:
+        
         """Enrich the data summary with descriptions"""
         logger.info(f"Enriching the data summary with descriptions")
  
@@ -140,16 +138,15 @@ class Summarizer():
  
         response = text_gen.generate(messages=messages, config=textgen_config)
         enriched_summary = base_summary
-        print(response)
+
         try:
             json_string = clean_code_snippet(response.text[0]["content"])
             enriched_summary = json.loads(json_string)
-            print(enriched_summary)
         except json.decoder.JSONDecodeError:
             error_msg = f"The model did not return a valid JSON object while attempting to generate an enriched data summary. Consider using a default summary or  a larger model with higher max token length. | {response.text[0]['content']}"
             logger.info(error_msg)
-            print(response.text[0]["content"])
             raise ValueError(error_msg + "" + response.usage)
+    
         return enriched_summary
  
     def summarize(
@@ -157,6 +154,7 @@ class Summarizer():
             text_gen: TextGenerator, description: dict, file_name="", n_samples: int = 3,
             textgen_config=TextGenerationConfig(n=1),
             summary_method: str = "default", encoding: str = 'utf-8') -> dict:
+        
         """Summarize data from a pandas DataFrame or a file location"""
  
         # if data is a file path, read it into a pandas DataFrame, set file_name to the file name
@@ -175,24 +173,24 @@ class Summarizer():
         }
  
         data_summary = base_summary
- 
-        if summary_method == "llm":
-            # two stage summarization with llm enrichment
+        
+        if summary_method == "enrich":
+            """Enrich: automatically generate descriptions for each column"""
             data_summary = self.enrich(
                 base_summary,
                 text_gen=text_gen,
                 textgen_config=textgen_config)
-            
+                        
         elif summary_method == "columns":
-            # no enrichment, only column names
+            """Columns: automatically generate descriptions for each column"""
             data_summary = {
                 "name": file_name,
                 "file_name": file_name,
                 "dataset_description": ""
             }
 
-        # given a user's input, update column
         elif summary_method == "describe":
+            """Describe: add column descriptions from user input"""
             data_summary["dataset_description"] = description["dataset_description"]
             
             for field in data_summary["fields"]:
@@ -205,4 +203,3 @@ class Summarizer():
         data_summary["file_name"] = file_name
  
         return data_summary
- 
