@@ -380,6 +380,7 @@ class Manager(object):
         code,
         goal: Goal,
         textgen_config: TextGenerationConfig = TextGenerationConfig(),
+        error: str = '',
         library: str = "seaborn",
     ):
         """Evaluate a visualization code given a goal
@@ -397,6 +398,7 @@ class Manager(object):
         return self.evaluator.generate(
             code=code,
             goal=goal,
+            error=error,
             textgen_config=textgen_config,
             text_gen=self.text_gen,
             library=library,

@@ -34,13 +34,19 @@ class VizEvaluator(object):
         pass
 
     def generate(self, code: str, goal: Goal,
-                 textgen_config: TextGenerationConfig, text_gen: TextGenerator, library='altair'):
+                 textgen_config: TextGenerationConfig, text_gen: TextGenerator, error: str = '', library='seaborn'):
         """Generate a visualization explanation given some code"""
+        # print(code)
+        print(error)
+        user_prompt = f"Generate an evaluation given the goal and code below in {library}. The specified goal is \n\n {goal.question} \n\n and the visualization code is \n\n {code} \n\n."
+        if(error != ""):
+            user_prompt += f"\n\nThe code generated the following error: {error}"
+        user_prompt += f"Now, evaluate the code based on the 6 dimensions above. \n. THE SCORE YOU ASSIGN MUST BE MEANINGFUL AND BACKED BY CLEAR RATIONALE. A SCORE OF 1 IS POOR AND A SCORE OF 10 IS VERY GOOD. The structured evaluation is below."
 
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "assistant",
-             "content": f"Generate an evaluation given the goal and code below in {library}. The specified goal is \n\n {goal.question} \n\n and the visualization code is \n\n {code} \n\n. Now, evaluate the code based on the 6 dimensions above. \n. THE SCORE YOU ASSIGN MUST BE MEANINGFUL AND BACKED BY CLEAR RATIONALE. A SCORE OF 1 IS POOR AND A SCORE OF 10 IS VERY GOOD. The structured evaluation is below."},
+             "content": f"{user_prompt}"},
         ]
 
         completions: TextGenerationResponse = text_gen.generate(

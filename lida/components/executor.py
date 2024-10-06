@@ -132,20 +132,20 @@ class ChartExecutor:
                     print(code_spec_copy, "\n===========\n")
                     print(exception_error)
                     print(traceback.format_exc())
-                    if return_error:
-                        charts.append(
-                            ChartExecutorResponse(
-                                spec=None,
-                                status=False,
-                                raster=None,
-                                code=code,
-                                library=library,
-                                error={
-                                    "message": str(exception_error),
-                                    "traceback": traceback.format_exc(),
-                                },
-                            )
+                    # if return_error:
+                    charts.append(
+                        ChartExecutorResponse(
+                            spec=None,
+                            status=False,
+                            raster=None,
+                            code=code,
+                            library=library,
+                            error={
+                                "message": str(exception_error),
+                                "traceback": traceback.format_exc(),
+                            },
                         )
+                    )
             return charts
         elif library == "matplotlib" or library == "seaborn":
             # print colum dtypes
@@ -183,20 +183,20 @@ class ChartExecutor:
                     print(code_spec_copy[0])
                     print("****\n", str(exception_error))
                     # print(traceback.format_exc())
-                    if return_error:
-                        charts.append(
-                            ChartExecutorResponse(
-                                spec=None,
-                                status=False,
-                                raster=None,
-                                code=code,
-                                library=library,
-                                error={
-                                    "message": str(exception_error),
-                                    "traceback": traceback.format_exc(),
-                                },
-                            )
+                    # if return_error:
+                    charts.append(
+                        ChartExecutorResponse(
+                            spec=None,
+                            status=False,
+                            raster=None,
+                            code=code,
+                            library=library,
+                            error={
+                                "message": str(exception_error),
+                                "traceback": traceback.format_exc(),
+                            },
                         )
+                    )
             return charts
         elif library == "ggplot":
             # print colum dtypes
@@ -221,20 +221,20 @@ class ChartExecutor:
                 except Exception as exception_error:
                     print(code)
                     print(traceback.format_exc())
-                    if return_error:
-                        charts.append(
-                            ChartExecutorResponse(
-                                spec=None,
-                                status=False,
-                                raster=None,
-                                code=code,
-                                library=library,
-                                error={
-                                    "message": str(exception_error),
-                                    "traceback": traceback.format_exc(),
-                                },
-                            )
+                    # if return_error:
+                    charts.append(
+                        ChartExecutorResponse(
+                            spec=None,
+                            status=False,
+                            raster=None,
+                            code=code,
+                            library=library,
+                            error={
+                                "message": str(exception_error),
+                                "traceback": traceback.format_exc(),
+                            },
                         )
+                    )
             return charts
 
         elif library == "plotly":
@@ -260,20 +260,20 @@ class ChartExecutor:
                 except Exception as exception_error:
                     print(code)
                     print(traceback.format_exc())
-                    if return_error:
-                        charts.append(
-                            ChartExecutorResponse(
-                                spec=None,
-                                status=False,
-                                raster=None,
-                                code=code,
-                                library=library,
-                                error={
-                                    "message": str(exception_error),
-                                    "traceback": traceback.format_exc(),
-                                },
-                            )
+                    # if return_error:
+                    charts.append(
+                        ChartExecutorResponse(
+                            spec=None,
+                            status=False,
+                            raster=None,
+                            code=code,
+                            library=library,
+                            error={
+                                "message": str(exception_error),
+                                "traceback": traceback.format_exc(),
+                            },
                         )
+                    )
             return charts
 
         else:
