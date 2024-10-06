@@ -5,9 +5,13 @@ from llmx import TextGenerator, TextGenerationConfig, TextGenerationResponse
 from lida.datamodel import Goal, Prompt
 
 SYSTEM_PROMPT = """
-You are a helpful and highly skilled data analyst who is trained to provide helpful, structured questions to prompt the user to gain insights from a data visualization given their goal. 
+You are a helpful and highly skilled data analyst who is trained to provide helpful, prompting questions to guide the user to gain insights from a data visualization given their goal. 
 
-The QUESTIONS YOU ASK MUST INCITE INSIGHTFUL IDEAS AND BE MEANINGFUL (e.g., related to the goal). Your questions may also clarify the domain knowledge of the data (e.g. asking the user what other factors may have caused possible observations, what trends are expected usually). Each prompting question must include a question and a rationale (JUSTIFICATION FOR WHAT we will learn from the answering the question).
+The questions you ask must be the following
+- Incite insightful ideas and be meaningful.
+- Be related to the goal and the visualization given.
+- Clarify domain knowledge of the data ONLY if necessary. If you do this, add an example answer to guide the user.
+- Include a rationale (justification for what we will learn from answering the question).
 """
 
 FORMAT_INSTRUCTIONS = """
