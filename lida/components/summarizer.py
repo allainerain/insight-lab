@@ -130,10 +130,13 @@ class Summarizer():
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "assistant", "content": f"""
-        Annotate the dictionary below. Only return a JSON object and MAKE SURE THAT IT IS A VALID JSON OBJECT.
-        Do not change anything else except fields marked with "description". Keep the rest the same.
-        {base_summary}
-        """},
+            Annotate the dictionary below. Make sure to be as detailed as possible and try to infer domain knowledge.
+            For the columns, add the expected data type.
+            Only return a JSON object and MAKE SURE THAT IT IS A VALID JSON OBJECT.
+            Do not change anything else except fields marked with "description". Keep the rest the same.
+            {base_summary}
+            """
+            },
         ]
  
         response = text_gen.generate(messages=messages, config=textgen_config)
