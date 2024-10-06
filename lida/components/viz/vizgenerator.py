@@ -24,7 +24,7 @@ class VizGenerator(object):
         self.scaffold = ChartScaffold()
 
     def generate(self, summary: Dict, goal: Goal,
-                 textgen_config: TextGenerationConfig, text_gen: TextGenerator, library='altair'):
+                 textgen_config: TextGenerationConfig, text_gen: TextGenerator, library='seaborn'):
         """Generate visualization code given a summary and a goal"""
 
         library_template, library_instructions = self.scaffold.get_template(goal, library)
