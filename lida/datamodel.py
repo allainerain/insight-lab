@@ -72,10 +72,7 @@ class Prompt:
 class Insight:
     """A visualization insight"""
     insight: str
-    prompts: list[str]
-    answers: list[str]
-    search_phrase: str
-    evidence: list[str]
+    evidence: dict
     index: Optional[int] = 0
 
     def _repr_markdown_(self):
@@ -84,13 +81,7 @@ class Insight:
 ---
 **Insight:** {self.insight}
 
-**Search Phrase:** {self.search_phrase}
-
 **Evidence:** {self.evidence}
-
-**Pairs:**
-    **Prompts:** {self.prompts}
-    **Answers:** {self.answers}
 """
 
 
