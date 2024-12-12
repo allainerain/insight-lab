@@ -50,41 +50,6 @@ class Goal:
 **Rationale:** {self.rationale}
 """
 
-
-@dataclass
-class Prompt:
-    """A visualization goal"""
-    question: str
-    rationale: str
-    index: Optional[int] = 0
-
-    def _repr_markdown_(self):
-        return f"""
-### Prompt {self.index}
----
-**Question:** {self.question}
-
-**Rationale:** {self.rationale}
-
-"""
-
-@dataclass
-class Insight:
-    """A visualization insight"""
-    insight: str
-    evidence: dict
-    index: Optional[int] = 0
-
-    def _repr_markdown_(self):
-        return f"""
-### Insight {self.index}
----
-**Insight:** {self.insight}
-
-**Evidence:** {self.evidence}
-"""
-
-
 @dataclass
 class Summary:
     """A summary of a dataset"""
@@ -133,17 +98,45 @@ class Persona:
 **Rationale:** {self.rationale}
 """
 
+# PROMPT
 
 @dataclass
-class GoalWebRequest:
-    """A Goal Web Request"""
+class Prompt:
+    """A visualization goal"""
+    question: str
+    rationale: str
+    index: Optional[int] = 0
 
-    summary: Summary
-    textgen_config: Optional[TextGenerationConfig] = field(
-        default_factory=TextGenerationConfig
-    )
-    n: int = 5
+    def _repr_markdown_(self):
+        return f"""
+### Prompt {self.index}
+---
+**Question:** {self.question}
 
+**Rationale:** {self.rationale}
+
+"""
+
+# INSIGHT 
+
+@dataclass
+class Insight:
+    """A visualization insight"""
+    insight: str
+    evidence: dict
+    index: Optional[int] = 0
+
+    def _repr_markdown_(self):
+        return f"""
+### Insight {self.index}
+---
+**Insight:** {self.insight}
+
+**Evidence:** {self.evidence}
+"""
+
+
+# VISUALIZATION CLASSES
 
 @dataclass
 class VisualizeWebRequest:
@@ -266,3 +259,13 @@ class InfographicsRequest:
     n: int = 1
     style_prompt: Union[str, List[str]] = ""
     # return_pil: bool = False
+
+@dataclass
+class GoalWebRequest:
+    """A Goal Web Request"""
+
+    summary: Summary
+    textgen_config: Optional[TextGenerationConfig] = field(
+        default_factory=TextGenerationConfig
+    )
+    n: int = 5
