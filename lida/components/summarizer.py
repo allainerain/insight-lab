@@ -58,7 +58,7 @@ class Summarizer():
             properties = {}
 
             """Check the datatype of each column and set the property datatype"""
-            if dtype in [int, float, complex]:
+            if str(dtype) in ["int", "float", "complex", "int64", "float64"]:
                 properties["dtype"] = "number"
             elif dtype == bool:
                 properties["dtype"] = "boolean"
@@ -112,7 +112,6 @@ class Summarizer():
                 samples = pd.Series(non_null_values).sample(
                     n_samples, random_state=42).tolist()
                 properties["samples"] = samples
-            properties["groupable"] = nunique != len(df)
             properties["num_unique_values"] = nunique
             properties["semantic_type"] = ""
             properties["description"] = ""
@@ -121,35 +120,65 @@ class Summarizer():
  
         return properties_list
  
+    def update_base_summary(self, base_summary, descriptions):
+        if "dataset_description" in descriptions:
+            base_summary["dataset_description"] = descriptions["dataset_description"]
+
+        for field in base_summary.get("fields", []):
+            column_name = field.get("column")
+
+            if column_name in descriptions:
+                # Update description and semantic_type
+                new_description, new_semantic_type = descriptions[column_name]
+                field["properties"]["description"] = new_description
+                field["properties"]["semantic_type"] = new_semantic_type
+
+        return base_summary
+
     def enrich(self, base_summary: dict, text_gen: TextGenerator,
                textgen_config: TextGenerationConfig) -> dict:
         
         """Enrich the data summary with descriptions"""
         logger.info(f"Enriching the data summary with descriptions")
  
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "assistant", "content": f"""
+        prompt = f"""
             Annotate the dictionary below. Make sure to be as detailed as possible and try to infer domain knowledge.
             For the columns, add the expected data type.
-            Only return a JSON object and MAKE SURE THAT IT IS A VALID JSON OBJECT.
-            Do not change anything else except fields marked with "description". Keep the rest the same.
+
+            This is the summary
             {base_summary}
-            """
-            },
+        """
+
+        ENRICHED_FORMAT =  """
+        THE OUTPUT MUST BE A CODE SNIPPET OF A VALID LIST OF JSON OBJECTS. IT MUST USE THE FOLLOWING FORMAT:
+
+        ```
+            { "dataset_description": "insert the dataset description here", "column_name": ["insert the description you generated here","insert the semantic type here"],  ... }
+            
+        ```
+        THE OUTPUT SHOULD ONLY USE THE JSON FORMAT ABOVE.
+        """
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "assistant", "content": prompt + ENRICHED_FORMAT
+            }
         ]
- 
+
         response = text_gen.generate(messages=messages, config=textgen_config)
         enriched_summary = base_summary
-
+     
         try:
             json_string = clean_code_snippet(response.text[0]["content"])
-            enriched_summary = json.loads(json_string)
+            descriptions = json.loads(json_string)
         except json.decoder.JSONDecodeError:
             error_msg = f"The model did not return a valid JSON object while attempting to generate an enriched data summary. Consider using a default summary or  a larger model with higher max token length. | {response.text[0]['content']}"
             logger.info(error_msg)
             raise ValueError(error_msg + "" + response.usage)
     
+        # Update the base summary
+        enriched_summary = self.update_base_summary(base_summary, descriptions)
+
         return enriched_summary
  
     def summarize(
