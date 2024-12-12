@@ -143,20 +143,16 @@ class InsightExplorer(object):
             description: dict = {}, api_key: str = "" ):
         
         """Generate the search phrases"""
-        # search_phrases = self.generate_search_phrases(goal=goal, answers=answers, prompts=prompts, textgen_config=textgen_config, text_gen=text_gen)
+        search_phrases = self.generate_search_phrases(goal=goal, answers=answers, prompts=prompts, textgen_config=textgen_config, text_gen=text_gen)
 
         """Take web search results for each search phrase"""
-        # search_results = []
-        # search_phrases = ["Malls in instabul shopping trends", "Seasonal shopping trends globally"]
-        # for search_phrase in search_phrases:
-        #     curr_search_results = self.search(search_phrase=search_phrase, api_key=api_key)
-        #     for result in curr_search_results:
-        #         search_results.append(result)
+        search_results = []
+        for search_phrase in search_phrases:
+            curr_search_results = self.search(search_phrase=search_phrase, api_key=api_key)
+            for result in curr_search_results:
+                search_results.append(result)
         
-        # print(search_results)
-
-        """Scrape the content from each search result"""
-        search_results = ['https://medium.com/@Splendor001/exploring-shopping-habits-in-istanbul-insights-from-10-different-shopping-malls-540ecf2064af', 'https://www.tooistanbul.com/en/istanbul-shopping/', 'https://medium.com/@ehidiamengodsfavour/second-data-analysis-project-exploring-shopping-habits-from-10-malls-in-istanbul-bcd46f02e588', 'https://www.across-magazine.com/the-economic-situation-in-turkey-and-its-impact-on-shopping-malls/', 'https://www.travelup.com/en-gb/blog/shopping-in-istanbul', 'https://insights.discoverglobalnetwork.com/insights/tips-for-a-winning-holiday-retail-strategy', 'https://www.emarketer.com/content/3-holiday-shopping-trends--value-driven-purchases--in-store-resurgence--mobile-commerce-boom', 'https://www.bazaarvoice.com/resources/holiday-shopping-trends-infographic/', 'https://www.emarketer.com/topics/industry/holiday-seasonal-shopping', 'https://www.storyly.io/post/12-key-holiday-season-trends-and-50-statistics-for-ecommerce']
+        print(search_results)
 
         scraper = WebScraper(user_agent='windows')
         contents = []
@@ -221,11 +217,8 @@ class InsightExplorer(object):
         result = text_gen.generate(messages=messages, config=textgen_config)
 
         try:            
-            print(result)
             result = clean_code_snippet(result.text[0]['content'])
-            print(result)
             result = json.loads(result)
-            print(result)
 
             # cast each item in the list to an Insight object
             if isinstance(result, dict):
