@@ -18,7 +18,7 @@ from ..components.goal import GoalExplorer
 from ..components.persona import PersonaExplorer
 from ..components.executor import ChartExecutor
 from ..components.prompter import Prompter
-from ..components.insight import InsightExplorer
+from ..components.insight.insight import InsightExplorer
 from ..components.viz import VizGenerator, VizEditor, VizExplainer, VizEvaluator, VizRepairer, VizRecommender
 
 import lida.web as lida
