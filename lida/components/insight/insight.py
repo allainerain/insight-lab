@@ -2,7 +2,7 @@ import json
 import logging
 from lida.utils import clean_code_snippet
 from llmx import TextGenerator, TextGenerationConfig, TextGenerationResponse
-from lida.datamodel import Goal, Prompt, Insight, Persona
+from lida.datamodel import Goal, Prompt, Insight, Persona, Research
 from ..insight.webscraper import WebScraper
 from ..insight.retrieval import EmbeddingRetriever
 
@@ -57,6 +57,33 @@ THE OUTPUT MUST BE A CODE SNIPPET OF A VALID LIST OF STRINGS (the search phrases
 ```
 
 THE OUTPUT SHOULD ONLY USE THE LIST FORMAT ABOVE.
+"""
+
+SYSTEM_PROMPT_RA = """
+You are a helpful and highly skilled data analyst who is trained to provide helpful, prompting questions to guide the user to gain insights from a data visualization given their goal, additional references, and GIVEN THEIR ANSWERS TO QUESTIONS. 
+
+The questions you ask must be the following
+- Incite insightful ideas and be meaningful.
+- Be related to the goal, the visualization given, the provided references, AND THE USER ANSWERS.
+- Clarify domain knowledge of the data ONLY if necessary. If you do this, add an example answer to guide the user.
+
+"""
+
+FORMAT_INSTRUCTIONS_RA = """
+THE OUTPUT MUST BE A CODE SNIPPET OF A VALID LIST OF JSON OBJECTS. IT MUST USE THE FOLLOWING FORMAT:
+
+```[
+        { 
+            "index": 0,  
+            "question": "prompting question", 
+            "evidence": {
+                "1": ["URL", "Quoted Sentence"], 
+                "2": ["URL", "Quoted Sentence"]
+            }
+        }
+    ]
+```
+THE OUTPUT SHOULD ONLY USE THE JSON FORMAT ABOVE. Make sure that the JSON format is free from any errors. Any quotes within strings need to be escaped with a backslash (\").
 """
 
 logger = logging.getLogger("lida")
@@ -224,6 +251,101 @@ class InsightExplorer(object):
             if isinstance(result, dict):
                 result = [result]
             result = [Insight(**x) for x in result]
+        except Exception as e:
+            logger.info(f"Error decoding JSON: {result.text[0]['content']}")
+            print(f"Error decoding JSON: {result.text[0]['content']}")
+            raise ValueError(
+                "The model did not return a valid JSON object while attempting to generate goals. Consider using a larger model or a model with a higher max token length.")
+
+        return result
+    
+    def research(
+            self, goal: Goal, answers: list[str], prompts: Prompt, 
+            textgen_config: TextGenerationConfig, text_gen: TextGenerator, persona:Persona = None, n=5, 
+            description: dict = {}, api_key: str = "" ):
+        
+        """Generate the search phrases"""
+        search_phrases = self.generate_search_phrases(goal=goal, answers=answers, prompts=prompts, textgen_config=textgen_config, text_gen=text_gen)
+
+        """Take web search results for each search phrase"""
+        search_results = []
+        for search_phrase in search_phrases:
+            curr_search_results = self.search(search_phrase=search_phrase, api_key=api_key)
+            for result in curr_search_results:
+                search_results.append(result)
+        
+        print(search_results)
+
+        scraper = WebScraper(user_agent='windows')
+        contents = []
+
+        for search_result in search_results:
+            content = scraper.scrape_url(search_result)
+            contents.append(content)
+
+        print(contents)
+
+        """Retrieve the most relevant documents"""
+        retriever = EmbeddingRetriever()
+        references = retriever.retrieve_embeddings(contents, search_results, answers)
+        print(references)
+
+        """Building the insight given the references"""
+
+        user_prompt = f"""
+        Here are the questions and the answers to those questions:
+        """
+
+        # Prompt: Add question and answer pairs
+        for i in range(len(prompts)):
+            user_prompt += f"""
+            \n\n Question {prompts[i].index + 1}: {prompts[i].question}
+            \n Answer: {answers[i]}
+            """
+
+        # Prompt: Add goal
+        user_prompt += f"""
+        \nThis is the goal of the user:
+        \nQuestion: {goal.question}
+        \nVisualization: {goal.visualization}
+        \nRationale: {goal.rationale}
+        \nCan you generate A TOTAL OF {n} QUESTIONS from the answers that draws connections between them?
+        """
+
+        user_prompt += f"""
+        \nTHESE ARE THE REFERENCES:
+        \n{references}
+        """
+        
+        # Define persona
+        if not persona:
+            persona = Persona(
+                persona="A highly skilled data analyst who can come up with complex, insightful goals about data",
+                rationale="")
+            
+        # Prompt: Add persona
+        user_prompt += f"\nThe generated questions SHOULD TRY TO BE FOCUSED ON THE INTERESTS AND PERSPECTIVE of a '{persona.persona}' persona, who is interested in complex, insightful questions about the data.\n"
+
+        # Prompt: Add description if applicable
+        if description != {}:
+            user_prompt += "These are the descriptions of the columns of the dataset. Try to make connections with the descriptions provided below with your hypothesis and the search phrase if it's applicable when generating the questions."
+            user_prompt += str(description)
+            
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT_RA},
+            {"role": "assistant", "content": f"{user_prompt}\n\n{FORMAT_INSTRUCTIONS_RA}\n\nThe generated {n} questions are:\n"}
+        ]
+
+        result = text_gen.generate(messages=messages, config=textgen_config)
+
+        try:            
+            result = clean_code_snippet(result.text[0]['content'])
+            result = json.loads(result)
+
+            # cast each item in the list to an Insight object
+            if isinstance(result, dict):
+                result = [result]
+            result = [Research(**x) for x in result]
         except Exception as e:
             logger.info(f"Error decoding JSON: {result.text[0]['content']}")
             print(f"Error decoding JSON: {result.text[0]['content']}")

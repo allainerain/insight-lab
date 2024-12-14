@@ -135,6 +135,24 @@ class Insight:
 **Evidence:** {self.evidence}
 """
 
+# INSIGHT 
+
+@dataclass
+class Research:
+    """Research into user insights"""
+    question: str
+    evidence: dict
+    index: Optional[int] = 0
+
+    def _repr_markdown_(self):
+        return f"""
+### Research {self.index}
+---
+**Reference:** {self.evidence}
+
+**Prompt:** {self.question}
+"""
+
 
 # VISUALIZATION CLASSES
 

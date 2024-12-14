@@ -1,6 +1,6 @@
 import streamlit as st
 from lida import Manager, TextGenerationConfig, llm
-from lida.datamodel import Goal, Persona, Insight
+from lida.datamodel import Goal, Persona, Insight, Prompt
 import os
 import pandas as pd
 import copy
@@ -13,12 +13,9 @@ st.set_page_config(
     page_title="LIDA+: Exploratory Data Analysis Assistant",
     page_icon="📊",
     layout="wide",
-
 )
 
 # States
-st.session_state.openai_key = os.getenv("OPENAI_API_KEY")
-st.session_state.serper_key = os.getenv("SERPER_API_KEY")
 if "saved_visualizations" not in st.session_state:
     st.session_state.saved_visualizations = []
 
@@ -27,6 +24,7 @@ if "saved_goals" not in st.session_state:
 
 if "saved_insights" not in st.session_state:
     st.session_state.saved_insights = []
+
 selected_dataset = None
 
 st.write("# LIDA+: Exploratory Data Analysis Assistant 📊")
@@ -49,6 +47,13 @@ openai_key = os.getenv("OPENAI_API_KEY")
 #################
 
 st.sidebar.write("# Setup")
+
+with st.sidebar.expander("LIDA Version"):
+    version = st.selectbox(
+        "What version of LIDA do you want to use?", 
+        ("LIDA+", "LIDA++")
+    )
+
 with st.sidebar.expander("Generation Settings"):
     openai_tab, serper_tab = st.tabs(["OpenAI Config", "Serper Config"])
 
@@ -97,7 +102,6 @@ with st.sidebar.expander("Generation Settings"):
 
 if openai_key:
 
-    
     #################
     # DATASET
     #################
@@ -216,7 +220,7 @@ if openai_key and selected_dataset:
     #################
     # GOAL EXPLORER
     #################
-    st.write("### Goal Explorer")
+    st.write("## Goal Explorer")
 
     if "goals" not in st.session_state:
         st.session_state.goals = []
@@ -427,9 +431,17 @@ if openai_key and selected_dataset:
                         with prompter:
                             st.write("### Prompter")
 
-                            with st.expander("Prompter and Insight Explorer Settings"):
+                            if version == "LIDA+":
+                                prompter_tab_label = "Prompter and Insight Explorer Settings"
+                                insights_label = "Number of insights to generate"
+
+                            if version == "LIDA++":
+                                prompter_tab_label = "Prompter and Research Assistant Settings"
+                                insights_label = "Number of research to generate"
+
+                            with st.expander(prompter_tab_label):
                                 num_questions = st.number_input("Number of questions to generate", max_value=10, min_value=1)
-                                num_insights = st.number_input("Number of insights to generate", max_value=10, min_value=1)
+                                num_insights = st.number_input(insights_label, max_value=10, min_value=1)
                             
                             if st.button("Generate Questions"):
                                 st.session_state.prompts = lida.prompt(goal=selected_goal_object, textgen_config=textgen_config, n=num_questions) 
@@ -440,12 +452,18 @@ if openai_key and selected_dataset:
                                 with st.container(height=300):
                                     for i in range(len(st.session_state.prompts)):
                                         st.session_state.answers[i] = st.text_area(st.session_state.prompts[i].question)
-                                    
-                                if st.button("Generate Insights"):
-                                    st.session_state.insights = lida.insights(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights, api_key=serper_key)
-                
-                # VISUALIZATION TAB
+                                
+                                if version == "LIDA+":
+                                    if st.button("Generate Insights"):
+                                        st.session_state.insights = lida.insights(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights, api_key=serper_key)
+
+                                if version == "LIDA++":
+                                    if st.button("Generate Research"):
+                                        st.session_state.researches = lida.research(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights, api_key=serper_key)
+
+                # VISUALIZATION TABs
                 with saved_viz_tab:
+                    st.warning("The visualizations saved are only the raster. The goal that generated it is not saved.")
                     for saved_viz_index, saved_visualization in enumerate(st.session_state.saved_visualizations):
                         with st.container(border=True):
 
@@ -494,6 +512,11 @@ if openai_key and selected_dataset:
                                 st.session_state.saved_visualizations.append(copy.deepcopy(selected_vis))
                     
                     with saved_insights_tab:
+                        new_custom_insight = st.text_area("Add a custom insight here")
+                        new_custom_insight_object = Insight(insight=new_custom_insight, evidence={}, index=0)
+                        if new_custom_insight_object not in st.session_state.saved_insights and new_custom_insight != "":
+                            st.session_state.saved_insights.append(new_custom_insight_object)
+
                         for saved_insight_index, saved_insight in enumerate(st.session_state.saved_insights):
                             with st.container(border=True):
                                 st.write(saved_insight.insight)
@@ -517,42 +540,141 @@ if openai_key and selected_dataset:
                                         ...
                                 with saved_insights_col2:
                                     if st.button("Delete", key=f"delete_saved_insights_{saved_insight_index}", use_container_width=True):
-                                        st.session_state.saved_insights.pop(saved_viz_index)
+                                        st.session_state.saved_insights.pop(saved_insight_index)
                                         st.rerun() 
                             
-      
-                if "insights" in st.session_state and st.session_state.insights:
-                    st.write("## Insights")
-                    insights = st.session_state.insights
+                if version == "LIDA+":
+                    if "insights" in st.session_state and st.session_state.insights:
+                        st.write("## Insights")
+                        insights = st.session_state.insights
 
-                    # Generated columns group
-                    insight_col1, insight_col2, insight_col3 = st.columns(3)
-                    insight_columns = [insight_col1, insight_col2, insight_col3]
-                    for i, insight in enumerate(insights):
-                        with insight_columns[i % 3]:  
+                        # Generated columns group
+                        insight_col1, insight_col2, insight_col3 = st.columns(3)
+                        insight_columns = [insight_col1, insight_col2, insight_col3]
+                        for i, insight in enumerate(insights):
+                            with insight_columns[i % 3]:  
 
-                            # Format each insight
-                            with st.container(border=True):
-                                st.write(insight.insight)
+                                # Format each insight
+                                with st.container(border=True):
+                                    st.write(insight.insight)
 
-                                for evidence_index, evidence in enumerate(insight.evidence):
-                                    st.markdown(
-                                        f"""
-                                        <a href="{insight.evidence[evidence][0]}">
-                                        <p style="font-size:12px; color:gray;">
-                                            [{evidence}]{insight.evidence[evidence][1]}
-                                        </p>
-                                        </a>
-                                        """, 
-                                        unsafe_allow_html=True
-                                    )                      
+                                    for evidence_index, evidence in enumerate(insight.evidence):
+                                        st.markdown(
+                                            f"""
+                                            <a href="{insight.evidence[evidence][0]}">
+                                            <p style="font-size:12px; color:gray;">
+                                                [{evidence}]{insight.evidence[evidence][1]}
+                                            </p>
+                                            </a>
+                                            """, 
+                                            unsafe_allow_html=True
+                                        )                      
+                                        
+                                    if st.button("Save", key=f"insight_{i}"):
+                                        if insight not in st.session_state.saved_insights:
+                                            st.session_state.saved_insights.append(insight)
+                
+# st.session_state.research_answers = []
+# st.session_state.research_prompts = []
+# st.session_state.researches = []
+# st.session_state.saved_insights = []
+
+                if version == "LIDA++":
+                    if "researches" in st.session_state and st.session_state.researches:
+                        st.write("## Research")
+                        researches = st.session_state.researches
+
+                        # Initialize answers and prompts as lists if not present
+                        if "research_answers" not in st.session_state:
+                            st.session_state.research_answers = ["" for _ in researches]
+                        if "research_prompts" not in st.session_state:
+                            st.session_state.research_prompts = [None for _ in researches]
+
+                        # Adjust length of answers and prompts if researches list changes
+                        while len(st.session_state.research_answers) < len(researches):
+                            st.session_state.research_answers.append("")
+                        while len(st.session_state.research_prompts) < len(researches):
+                            st.session_state.research_prompts.append(None)
+
+                        # Generate columns for the researches
+                        research_col1, research_col2, research_col3 = st.columns(3)
+                        research_columns = [research_col1, research_col2, research_col3]
+
+                        for i, research in enumerate(researches):
+                            with research_columns[i % 3]:
+                                # Format each insight
+                                with st.container(border=True):
+
+                                    st.write(research.question)
+
+                                    # Text area for the answer
+                                    research_answer = st.text_area(
+                                        "Put your answer here",
+                                        key=f"research_answer_{i}",
+                                        value=st.session_state.research_answers[i],
+                                        on_change=lambda idx=i: st.session_state.research_answers.__setitem__(idx, st.session_state[f"research_answer_{idx}"]),
+                                    )
                                     
-                                if st.button("Save", key=f"insight_{i}"):
-                                    if insight not in st.session_state.saved_insights:
-                                        st.session_state.saved_insights.append(insight)
+                                    # Checkbox for "Research further"
+                                    is_research_further = st.checkbox(
+                                        "Research further", key=f"research_further_{i}", value=st.session_state.research_prompts[i] is not None
+                                    )
+                                    
+                                    # Handle "Research further" checkbox logic
+                                    if is_research_further:
+                                        # Store prompt and answer
+                                        if st.session_state.research_prompts[i] is None:
+                                            st.session_state.research_prompts[i] = Prompt(
+                                                question=research.question, rationale="", index=i
+                                            )
+                                        st.session_state.research_answers[i] = research_answer
+                                    else:
+                                        # Remove prompt and clear the answer if unchecked
+                                        st.session_state.research_prompts[i] = None
+                                        st.session_state.research_answers[i] = ""
 
-                    
+                                    # Possible references
+                                    with st.expander("Possible references"):
+                                        for evidence_index, evidence in enumerate(research.evidence):
+                                            st.markdown(
+                                                f"""
+                                                <a href="{research.evidence[evidence][0]}">
+                                                <p style="font-size:12px; color:gray;">
+                                                    [{evidence}]{research.evidence[evidence][1]}
+                                                </p>
+                                                </a>
+                                                """,
+                                                unsafe_allow_html=True,
+                                            )
 
+                                    # Delete button
+                                    if st.button("Delete", key=f"delete_research_{i}"):
+                                        # Remove from researches, answers, and prompts
+                                        st.session_state.researches.pop(i)
+                                        st.session_state.research_answers.pop(i)
+                                        st.session_state.research_prompts.pop(i)
+                                        st.rerun()
 
+                        # Button to generate more research
+                        if st.button("Generate More Research"):
+                            new_research = lida.research(
+                                goal=selected_goal_object,
+                                answers=st.session_state.research_answers,
+                                prompts=[p for p in st.session_state.research_prompts if p is not None],
+                                n=num_insights,
+                                api_key=serper_key,
+                            )
+                            st.session_state.researches.extend(new_research)
+                            # Extend answers and prompts lists for new research
+                            st.session_state.research_answers.extend([""] * len(new_research))
+                            st.session_state.research_prompts.extend([None] * len(new_research))
+                            st.rerun()
 
-                    
+                    st.write("## Insight")
+
+                    new_insight_text = st.text_area("Add insight here")
+                    new_insight = Insight(insight=new_insight_text, evidence={}, index=0)
+
+                    if new_insight not in st.session_state.saved_insights and new_insight_text != "":
+                        st.session_state.saved_insights.append(new_insight)
+                        st.rerun()
