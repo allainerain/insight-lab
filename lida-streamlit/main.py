@@ -220,7 +220,7 @@ if openai_key and selected_dataset:
     #################
     # GOAL EXPLORER
     #################
-    st.write("### Goal Explorer")
+    st.write("## Goal Explorer")
 
     if "goals" not in st.session_state:
         st.session_state.goals = []
@@ -463,6 +463,7 @@ if openai_key and selected_dataset:
 
                 # VISUALIZATION TABs
                 with saved_viz_tab:
+                    st.warning("The visualizations saved are only the raster. The goal that generated it is not saved.")
                     for saved_viz_index, saved_visualization in enumerate(st.session_state.saved_visualizations):
                         with st.container(border=True):
 
@@ -511,6 +512,11 @@ if openai_key and selected_dataset:
                                 st.session_state.saved_visualizations.append(copy.deepcopy(selected_vis))
                     
                     with saved_insights_tab:
+                        new_custom_insight = st.text_area("Add a custom insight here")
+                        new_custom_insight_object = Insight(insight=new_custom_insight, evidence={}, index=0)
+                        if new_custom_insight_object not in st.session_state.saved_insights and new_custom_insight != "":
+                            st.session_state.saved_insights.append(new_custom_insight_object)
+
                         for saved_insight_index, saved_insight in enumerate(st.session_state.saved_insights):
                             with st.container(border=True):
                                 st.write(saved_insight.insight)
