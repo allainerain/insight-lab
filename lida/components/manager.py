@@ -228,6 +228,24 @@ class Manager(object):
         return self.insight.generate(goal=goal, answers=answers, prompts=prompts, persona=persona, description=description,
             text_gen=self.text_gen, textgen_config=textgen_config, n=n, api_key=api_key)
     
+    def research(
+            self, goal, answers, prompts, description: dict={}, persona: Persona = None, 
+            textgen_config: TextGenerationConfig = TextGenerationConfig(),
+            n=5, api_key=""):
+        
+        if isinstance(goal, dict):
+            goal = Goal(**goal)
+        if isinstance(goal, str):
+            goal = Goal(question=goal, visualization=goal, rationale="")
+
+        if isinstance(persona, dict):
+            persona = Persona(**persona)
+        if isinstance(persona, str):
+            persona = Persona(persona=persona, rationale="")
+        
+        return self.insight.research(goal=goal, answers=answers, prompts=prompts, persona=persona, description=description,
+            text_gen=self.text_gen, textgen_config=textgen_config, n=n, api_key=api_key)
+    
     def visualize(
         self,
         summary,
