@@ -604,11 +604,7 @@ if openai_key and selected_dataset:
                             with research_columns[i % 3]:
                                 # Format each insight
                                 with st.container(border=True):
-                                    # Checkbox for "Research further"
-                                    is_research_further = st.checkbox(
-                                        "Research further", key=f"research_further_{i}", value=st.session_state.research_prompts[i] is not None
-                                    )
-                                    
+
                                     st.write(research.question)
 
                                     # Text area for the answer
@@ -618,7 +614,12 @@ if openai_key and selected_dataset:
                                         value=st.session_state.research_answers[i],
                                         on_change=lambda idx=i: st.session_state.research_answers.__setitem__(idx, st.session_state[f"research_answer_{idx}"]),
                                     )
-
+                                    
+                                    # Checkbox for "Research further"
+                                    is_research_further = st.checkbox(
+                                        "Research further", key=f"research_further_{i}", value=st.session_state.research_prompts[i] is not None
+                                    )
+                                    
                                     # Handle "Research further" checkbox logic
                                     if is_research_further:
                                         # Store prompt and answer
