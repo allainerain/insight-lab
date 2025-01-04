@@ -13,14 +13,20 @@ LIDA++ aims to improve on the capabilities of LIDA by introducing new modules fo
 
 ## Table of Contents
 
-1. [Features](#features)
-   1.1. [Updated LIDA library features](#updated-lida-library-features)
-   1.2. [WebApp features](#webapp-features)
-   1.2.1. [LIDA+: Partially automated insight generation for insight discovery](#lida-partially-automated-insight-generation-for-insight-discovery)
-   1.2.2. [LIDA+: Assistant for insight discovery without directly generating insights](#lida-assistant-for-insight-discovery-without-directly-generating-insights)
-2. [Getting Started with the WebApp](#getting-started-with-the-web-app)
-3. [Getting Started with the Library](#getting-started-with-the-library)
-4. [Documentation and Citation](#documentation-and-citation)
+1. **Features**
+
+   - [1.1. Updated LIDA Library Features](#updated-lida-library-features)
+   - [1.2. WebApp Features](#webapp-features)
+     - [1.2.1. LIDA+: Partially Automated Insight Generation for Insight Discovery](#lida-partially-automated-insight-generation-for-insight-discovery)
+     - [1.2.2. LIDA+: Assistant for Insight Discovery Without Directly Generating Insights](#lida-assistant-for-insight-discovery-without-directly-generating-insights)
+
+2. **Getting Started**
+
+   - [2.1. With the WebApp](#getting-started-with-the-web-app)
+   - [2.2. With the Library](#getting-started-with-the-library)
+
+3. **Documentation and Citation**
+   - [Documentation and Citation](#documentation-and-citation)
 
 ## Features
 
