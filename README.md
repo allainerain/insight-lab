@@ -1,24 +1,32 @@
-# LIDA: Automatic Generation of Visualizations and Infographics using Large Language Models
+# 📊 LIDA++: Facilitating Insight Discovery using Large Language Models
 
-[![PyPI version](https://badge.fury.io/py/lida.svg)](https://badge.fury.io/py/lida)
-[![arXiv](https://img.shields.io/badge/arXiv-2303.02927-<COLOR>.svg)](https://arxiv.org/abs/2303.02927)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/lida?label=pypi%20downloads)
+This project is build on LIDA. LIDA is a library for generating data visualizations and data-faithful infographics. LIDA is grammar agnostic (will work with any programming language and visualization libraries e.g. matplotlib, seaborn, altair, d3 etc) and works with multiple large language model providers (OpenAI, Azure OpenAI, PaLM, Cohere, Huggingface).
 
-<a target="_blank" href="https://colab.research.google.com/github/microsoft/lida/blob/main/notebooks/tutorial.ipynb">
-<img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
-</a>
+LIDA++ aims to improve on the capabilities of LIDA by introducing new modules for insight discovery.
 
-<!-- <img src="docs/images/lidascreen.png" width="100%" /> -->
-
-LIDA is a library for generating data visualizations and data-faithful infographics. LIDA is grammar agnostic (will work with any programming language and visualization libraries e.g. matplotlib, seaborn, altair, d3 etc) and works with multiple large language model providers (OpenAI, Azure OpenAI, PaLM, Cohere, Huggingface). Details on the components of LIDA are described in the [paper here](https://arxiv.org/abs/2303.02927) and in this tutorial [notebook](notebooks/tutorial.ipynb). See the project page [here](https://microsoft.github.io/lida/) for updates!.
+> **Original research on LIDA**
+> Details on the original components of LIDA are described in the [paper here](https://arxiv.org/abs/2303.02927) and in this tutorial [notebook](notebooks/tutorial.ipynb). See the project page [here](https://microsoft.github.io/lida/) for updates!.
 
 > **Note on Code Execution:**
 > To create visualizations, LIDA _generates_ and _executes_ code.
 > Ensure that you run LIDA in a secure environment.
 
+## Table of Contents
+
+1. [Features](#features)
+   1.1. [Updated LIDA library features](#updated-lida-library-features)
+   1.2. [WebApp features](#webapp-features)
+   1.2.1. [LIDA+: Partially automated insight generation for insight discovery](#lida-partially-automated-insight-generation-for-insight-discovery)
+   1.2.2. [LIDA+: Assistant for insight discovery without directly generating insights](#lida-assistant-for-insight-discovery-without-directly-generating-insights)
+2. [Getting Started with the WebApp](#getting-started-with-the-web-app)
+3. [Getting Started with the Library](#getting-started-with-the-library)
+4. [Documentation and Citation](#documentation-and-citation)
+
 ## Features
 
-![lida components](https://github.com/microsoft/lida/blob/main/docs/images/lidamodules.jpg?raw=true)
+This work has two parts: a library and a web app. The library can be accessed in the `lida` folder while the web app can be accessed in the `lida-streamlit` folder.
+
+### Updated LIDA library features
 
 LIDA treats _**visualizations as code**_ and provides a clean api for generating, executing, editing, explaining, evaluating and repairing visualization code.
 
@@ -28,25 +36,36 @@ LIDA treats _**visualizations as code**_ and provides a clean api for generating
 - [x] Visualization Editing
 - [x] Visualization Explanation
 - [x] Visualization Evaluation and Repair
-- [x] Visualization Recommendation
-- [x] Infographic Generation (beta) # pip install lida[infographics]
+- [x] Chart Question and Answering
+- [x] Insight Generation
+- [x] Insight Discovery Research
 
-```python
+### WebApp features
 
-from lida import Manager, llm
+For the webapp, we present two workflows built from the modified LIDA library: LIDA+ and LIDA++.
 
-lida = Manager(text_gen = llm("openai")) # palm, cohere ..
-summary = lida.summarize("data/cars.csv")
-goals = lida.goals(summary, n=2) # exploratory data analysis
-charts = lida.visualize(summary=summary, goal=goals[0]) # exploratory data analysis
-```
+#### LIDA+: Partially automated insight generation for insight discovery
 
-## Getting Started
+<image src="./docs/images/LIDA+.png">
 
-Setup and verify that your python environment is **`python 3.10`** or higher (preferably, use [Conda](https://docs.conda.io/en/main/miniconda.html#installing)). Install the library via pip.
+#### LIDA+: Assistant for insight discovery without directly generating insights
+
+<image src="./docs/images/LIDA++.png">
+
+## Getting Started with the Web App
+
+Setup and verify that your python environment is **`python 3.10`** or higher (preferably, use [Conda](https://docs.conda.io/en/main/miniconda.html#installing)).
+
+### Clone the repository
 
 ```bash
-pip install -U lida 
+git clone https://github.com/allainerain/lida.git
+```
+
+### Install the requirements
+
+```bash
+pip install -U requirements.txt
 ```
 
 LIDA depends on `llmx` and `openai`. If you had these libraries installed previously, consider updating them.
@@ -55,33 +74,34 @@ LIDA depends on `llmx` and `openai`. If you had these libraries installed previo
 pip install -U llmx openai
 ```
 
-Once requirements are met, setup your api key. Learn more about setting up keys for other LLM providers [here](https://github.com/victordibia/llmx).
+### Set environment variables
 
-```bash
-export OPENAI_API_KEY=<your key>
+1. Create a .env file with the following
+
+```python
+OPENAI_APIKEY = "sk-xxxxxxx"
+SERPER_APIKEY = "xxxx"
 ```
 
-Alternatively you can install the library in dev model by cloning this repo and running `pip install -e .` in the repository root.
+2. Add a `config` folder containing a `config.yaml` file in `lida/components/insight` containing the following information:
 
-## Web API and UI
-
-LIDA comes with an optional bundled ui and web api that you can explore by running the following command:
-
-```bash
-lida ui  --port=8080 --docs
+```python
+openai_api_key: "sk-xxxxxxx"
+serper_api_key: "xxxx"
 ```
 
-Then navigate to http://localhost:8080/ in your browser. To view the web api specification, add the `--docs` option to the cli command, and navigate to `http://localhost:8080/api/docs` in your browser.
-
-The fastest and recommended way to get started after installation will be to try out the web ui above or run the [tutorial notebook](notebooks/tutorial.ipynb).
-
-## Building the Web API and UI with Docker
-
-The LIDA web api and ui can be setup using docker and the command below (ensure that you have docker installed, and you have set your `OPENAI_API_KEY` environment variable).
+### Run the web app
 
 ```bash
-docker compose up
+cd lida-streamlit
+streamlit run main.py
 ```
+
+## Getting Started with the Library
+
+The fastest and recommended way to learn about LIDA++'s capabilities is through the [LIDA+ and LIDA++ handbook notebook](notebooks/tutorial.ipynb).
+
+## Library Methods
 
 ### Data Summarization
 
@@ -141,73 +161,34 @@ Given a visualization, evaluate to find repair instructions (which may be human 
 evaluations = lida.evaluate(code=code,  goal=goals[i], library=library)
 ```
 
-### Visualization Recommendation
+### Prompting
 
-Given a dataset, generate a set of recommended visualizations.
-
-```python
-recommendations = lida.recommend(code=code, summary=summary, n=2,  textgen_config=textgen_config)
-```
-
-### Infographic Generation [WIP]
-
-Given a visualization, generate a data-faithful infographic. This methods should be considered experimental, and uses stable diffusion models from the [peacasso](https://github.com/victordibia/peacasso) library. You will need to run `pip install lida[infographics]` to install the required dependencies.
+Given a goal, generate prompting-probing questions to allow the user to critically analyze the visualization.
 
 ```python
-infographics = lida.infographics(visualization = charts[0].raster, n=3, style_prompt="line art")
+prompts = lida.prompt(goal=goal, textgen_config=textgen_config)
+
 ```
 
-## Using LIDA with Locally Hosted LLMs (HuggingFace)
+### Insight Generation
 
-LIDA uses the [llmx](https://github.com/victordibia/llmx) library as its interface for text generation. llmx supports multiple local models including HuggingFace models. You can use the huggingface models directly (assuming you have a gpu) or connect to an openai compatible local model endpoint e.g. using the excellent [vllm](https://vllm.readthedocs.io/en/latest/) library.
-
-#### Using HuggingFace Models Directly
+Given answers to prompts, search the web for relevant references and generate suggested insights.
 
 ```python
-!pip3 install --upgrade llmx==0.0.17a0
-
-# Restart the colab session
-
-from lida import Manager
-from llmx import  llm
-text_gen = llm(provider="hf", model="uukuguy/speechless-llama2-hermes-orca-platypus-13b", device_map="auto")
-lida = Manager(text_gen=text_gen)
-# now you can call lida methods as above e.g.
-sumamry = lida.summarize("data/cars.csv") # ....
+insights = lida.insights(goal=goal, answers=answers, prompts=promts,  textgen_config=textgen_config, api_key="SERPER_APIKEY")
 ```
 
-#### Using an OpenAI Compatible Endpoint e.g. [vllm server](https://vllm.readthedocs.io/en/latest/getting_started/quickstart.html#openai-compatible-server)
+### Research
+
+Given answers to prompts, search the web for relevant references and suggest more probing questions.
 
 ```python
-from lida import Manager, TextGenerationConfig , llm
-
-model_name = "uukuguy/speechless-llama2-hermes-orca-platypus-13b"
-model_details = [{'name': model_name, 'max_tokens': 2596, 'model': {'provider': 'openai', 'parameters': {'model': model_name}}}]
-
-# assuming your vllm endpoint is running on localhost:8000
-text_gen = llm(provider="openai",  api_base="http://localhost:8000/v1", api_key="EMPTY", models=model_details)
-lida = Manager(text_gen = text_gen)
+research = lida.research(goal=goal, answers=answers, prompts=promts,textgen_config=textgen_config, api_key="SERPER_APIKEY")
 ```
-
-## Important Notes / Caveats / FAQs
-
-- LIDA generates and executes code based on provided input. Ensure that you run LIDA in a secure environment with appropriate permissions.
-- LIDA currently works best with datasets that have a small number of columns (<= 10). This is mainly due to the limited context size for most models. For larger datasets, consider preprocessing your dataset to use a subset of the columns.
-- LIDA assumes the dataset exists and is in a format that can be loaded into a pandas dataframe. For example, a csv file, or a json file with a list of objects. In practices the right dataset may need to be curated and preprocessed to ensure that it is suitable for the task at hand.
-- Smaller LLMs (e.g., OSS LLMs on Huggingface) have limited instruction following capabilities and may not work well with LIDA. LIDA works best with larger LLMs (e.g., OpenAI GPT 3.5, GPT 4).
-- How reliable is the LIDA approach? The LIDA [paper](https://aclanthology.org/2023.acl-demo.11/) describes experiments that evaluate the reliability of LIDA using a visualization error rate metric. With the current version of prompts, data summarization techniques, preprocessing/postprocessing logic and LLMs, LIDA has an error rate of < 3.5% on over 2200 visualizations generated (compared to a baseline of over 10% error rate). This area is work in progress.
-- Can I build my own apps with LIDA? Yes! You can either use the python api directly in your app or setup a web api endpoint and use the web api in your app. See the [web api](#web-api-and-ui) section for more details.
-- How is LIDA related to OpenAI Code Interpreter: LIDA shares several similarities with code interpreter in the sense that both involve writing and executing code to address user intent. LIDA differs in its focus on visualization, providing a modular api for developer reuse and providing evaluation metrics on the visualization use case.
-
-Naturally, some of the limitations above could be addressed by a much welcomed PR.
-
-## Community Examples Built with LIDA
-
-- LIDA + Streamlit: [lida-streamlit](https://github.com/lida-project/lida-streamlit),
 
 ## Documentation and Citation
 
-A short paper describing LIDA (Accepted at ACL 2023 Conference) is available [here](https://arxiv.org/abs/2303.02927).
+This work is build on the work on LIDA. A short paper describing LIDA (Accepted at ACL 2023 Conference) is available [here](https://arxiv.org/abs/2303.02927).
 
 ```bibtex
 @inproceedings{dibia2023lida,
