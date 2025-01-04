@@ -28,7 +28,7 @@ class EmbeddingRetriever:
         metadatas = [{'url': link} for link in link_list]
         texts = self.text_splitter.create_documents(contents_list, metadatas=metadatas)
 
-        print(texts, metadatas)
+        # print(texts, metadatas)
 
         embeddings = OpenAIEmbeddings(model='text-embedding-ada-002', openai_api_key=self.config["openai_api_key"])
         document_embeddings = [embeddings.embed_query(doc.page_content) for doc in texts]
