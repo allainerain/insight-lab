@@ -1,10 +1,13 @@
 import streamlit as st
-from lida import Manager, TextGenerationConfig, llm
-from lida.datamodel import Goal, Persona, Insight, Prompt
 import os
 import pandas as pd
 import copy
+import sys
 
+sys.path.append(os.path.abspath('..'))
+
+from lida.components import Manager
+from lida.datamodel import Goal, Persona, Insight, Prompt
 
 # make data dir if it doesn't exist
 os.makedirs("data", exist_ok=True)
