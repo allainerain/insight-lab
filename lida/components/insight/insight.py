@@ -144,7 +144,7 @@ class InsightExplorer(object):
         Build a summary from the given answers and questions about the visualization. From the summary, generate a total of {n} search phrases.
         """
 
-        print(user_prompt)
+        # print(user_prompt)
 
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT_SEARCH},
@@ -179,7 +179,7 @@ class InsightExplorer(object):
             for result in curr_search_results:
                 search_results.append(result)
         
-        print(search_results)
+        # print(search_results)
 
         scraper = WebScraper(user_agent='windows')
         contents = []
@@ -188,12 +188,12 @@ class InsightExplorer(object):
             content = scraper.scrape_url(search_result)
             contents.append(content)
 
-        print(contents)
+        # print(contents)
 
         """Retrieve the most relevant documents"""
         retriever = EmbeddingRetriever()
         references = retriever.retrieve_embeddings(contents, search_results, answers)
-        print(references)
+        # print(references)
 
         """Building the insight given the references"""
 
@@ -274,7 +274,7 @@ class InsightExplorer(object):
             for result in curr_search_results:
                 search_results.append(result)
         
-        print(search_results)
+        # print(search_results)
 
         scraper = WebScraper(user_agent='windows')
         contents = []
@@ -283,12 +283,12 @@ class InsightExplorer(object):
             content = scraper.scrape_url(search_result)
             contents.append(content)
 
-        print(contents)
+        # print(contents)
 
         """Retrieve the most relevant documents"""
         retriever = EmbeddingRetriever()
         references = retriever.retrieve_embeddings(contents, search_results, answers)
-        print(references)
+        # print(references)
 
         """Building the insight given the references"""
 
