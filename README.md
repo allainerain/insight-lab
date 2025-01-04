@@ -105,7 +105,7 @@ streamlit run main.py
 
 ## Getting Started with the Library
 
-The fastest and recommended way to learn about LIDA++'s capabilities is through the [LIDA+ and LIDA++ handbook notebook](notebooks/tutorial.ipynb).
+The fastest and recommended way to learn about LIDA++'s capabilities is through the [LIDA+ and LIDA++ handbook notebook](notebooks/handbook/handbook.ipynb).
 
 ## Library Methods
 
