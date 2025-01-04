@@ -1,1 +1,13 @@
-.
+faiss-cpu
+langchain-openai
+langchain-community
+langchain
+python-dotenv
+llmx
+pandas
+matplotlib
+plotly
+seaborn
+beautifulsoup4
+streamlit
+lxml
