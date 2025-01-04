@@ -180,7 +180,7 @@ class Manager(object):
             if isinstance(insights[i], dict):
                 insights[i] = Insight(**insights[i])
             if isinstance(insights[i], str):
-                insights[i] = Insight(insight=insights[i], prompts=[], answers=[], index=i)
+                insights[i] = Insight(insight=insights[i], evidence={}, index=i)
                 
         if isinstance(persona, dict):
             persona = Persona(**persona)
@@ -350,6 +350,11 @@ class Manager(object):
         library: str = "seaborn",
         return_error: bool = False,
     ):
+        if isinstance(goal, dict):
+            goal = Goal(**goal)
+        if isinstance(goal, str):
+            goal = Goal(question=goal, visualization=goal, rationale="")
+
         """ Repair a visulization given some feedback"""
         self.check_textgen(config=textgen_config)
         code_specs = self.repairer.generate(
@@ -411,6 +416,11 @@ class Manager(object):
             _type_: _description_
         """
 
+        if isinstance(goal, dict):
+            goal = Goal(**goal)
+        if isinstance(goal, str):
+            goal = Goal(question=goal, visualization=goal, rationale="")
+            
         self.check_textgen(config=textgen_config)
 
         return self.evaluator.generate(
