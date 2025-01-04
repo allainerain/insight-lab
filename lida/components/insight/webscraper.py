@@ -48,7 +48,7 @@ class WebScraper:
     def convert_html_to_soup(self, html):
         # Convert the HTML string to a BeautifulSoup object for parsing
         html_string = html.text
-        return BeautifulSoup(html_string, "lxml")
+        return BeautifulSoup(html_string, "html.parser")
 
     def extract_main_content(self, html_soup, rule=0):
         # Extract the main content from a BeautifulSoup object
