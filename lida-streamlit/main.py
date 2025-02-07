@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import copy
 import sys
+from llmx import TextGenerationConfig, llm, TextGenerator
 
 sys.path.append(os.path.abspath('..'))
 
