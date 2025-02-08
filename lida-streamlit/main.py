@@ -6,6 +6,7 @@ import sys
 
 sys.path.append(os.path.abspath('..'))
 
+from llmx import llm, TextGenerationConfig, TextGenerator
 from lida.components import Manager
 from lida.datamodel import Goal, Persona, Insight, Prompt
 
@@ -28,6 +29,13 @@ if "saved_goals" not in st.session_state:
 if "saved_insights" not in st.session_state:
     st.session_state.saved_insights = []
 
+
+if "visualization" not in st.session_state:
+    st.session_state.visualization = None
+
+if "prompts" not in st.session_state:
+    st.session_state.prompts = None
+
 selected_dataset = None
 
 st.write("# LIDA+: Exploratory Data Analysis Assistant 📊")
@@ -38,7 +46,7 @@ st.markdown(
     libraries e.g. matplotlib, seaborn, altair, d3 etc) and works with multiple large language
     model providers (OpenAI, Azure OpenAI, PaLM, Cohere, Huggingface). Details on the components
     of LIDA are described in the [paper here](https://arxiv.org/abs/2303.02927) and in this
-    tutorial [notebook](notebooks/tutorial.ipynb). See the project page [here](https://microsoft.github.io/lida/) for updates!.
+    tutorial [notebook](notebooks/tutorial.ipynb). See the project page [here](https://microsoft.github.io/lida/) for updates!
 
    ----
 """)
@@ -228,6 +236,9 @@ if openai_key and selected_dataset:
     if "goals" not in st.session_state:
         st.session_state.goals = []
 
+    if "goal_questions" not in st.session_state:
+        st.session_state.goal_questions = []
+
     if summary:
         # PERSONA
         st.sidebar.write("### Motivation")
@@ -268,63 +279,68 @@ if openai_key and selected_dataset:
             with custom_goal_tab:
                 user_goal = st.text_input("Describe your goal")
                 if user_goal:
-                    new_goal = Goal(question=user_goal, visualization=user_goal, rationale="", persona=persona)
-                    st.session_state.goals = [new_goal]
-                    st.session_state.goal_questions = [new_goal.question]
-
+                    if user_goal not in st.session_state.goal_questions:
+                        new_goal = Goal(question=user_goal, visualization=user_goal, rationale="", persona=persona, index=len(st.session_state.goal_questions))
+                        st.session_state.goals.append(new_goal)
+                        st.session_state.goal_questions.append(new_goal.question)
+                    # st.session_state.visualization = None
+        print(st.session_state)
         if "goals" not in st.session_state or not st.session_state.goals:
             st.info("To continue, generate goals or add your own.")
 
         else:
             # Display Goals
-            if not user_goal:
-                goal_questions = st.session_state.goal_questions
-                goals = st.session_state.goals
-                selected_goal_index = None
-                selected_goal_object = None
-                
-                # Generated columns group
-                col1, col2, col3 = st.columns(3)
-                columns = [col1, col2, col3]
-                for i, goal in enumerate(goals):
-                    with columns[i % 3]:  
+            # if not user_goal:
+            goal_questions = st.session_state.goal_questions
+            goals = st.session_state.goals
+            selected_goal_index = None
+            selected_goal_object = None
+            
+            # Generated columns group
+            col1, col2, col3 = st.columns(3)
+            columns = [col1, col2, col3]
+            for i, goal in enumerate(goals):
+                with columns[i % 3]:  
 
-                        # Format each goal
-                        with st.container(border=True):
-                            st.write(goal.question)
-                            st.markdown(
-                                f"""
-                                <code>{goal.visualization}</code>
-                                """,
-                                unsafe_allow_html=True
-                            )
-                            st.markdown(
-                                f"""
-                                <p style="font-size:12px; color:gray;">
-                                    {goal.rationale}
-                                </p>
-                                """, 
-                                unsafe_allow_html=True
-                            )                      
+                    # Format each goal
+                    with st.container(border=True):
+                        st.write(goal.question)
+                        st.markdown(
+                            f"""
+                            <code>{goal.visualization}</code>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        st.markdown(
+                            f"""
+                            <p style="font-size:12px; color:gray;">
+                                {goal.rationale}
+                            </p>
+                            """, 
+                            unsafe_allow_html=True
+                        )                      
 
-                            goal_col1, goal_col2 = st.columns(2, gap="small")
+                        goal_col1, goal_col2 = st.columns(2, gap="small")
 
-                            with goal_col1:
-                                if st.button("Visualize", key=f"visualize_{goal.index}", use_container_width=True):
-                                    selected_goal_index = goal.index
-                            with goal_col2:
-                                # Button for Save
-                                if st.button("Save", key=f"save_{goal.index}", use_container_width=True):
-                                    if goals[goal.index] not in st.session_state.saved_goals:
-                                        st.session_state.saved_goals.append(copy.deepcopy(goals[goal.index]))
+                        with goal_col1:
+                            if st.button("Visualize", key=f"visualize_{goal.index}", use_container_width=True):
+                                selected_goal_index = goal.index
+                                st.session_state.visualization = None
+                                st.session_state.prompts = None
+                        with goal_col2:
+                            # Button for Save
+                            if st.button("Save", key=f"save_{goal.index}", use_container_width=True):
+                                if goals[goal.index] not in st.session_state.saved_goals:
+                                    st.session_state.saved_goals.append(copy.deepcopy(goals[goal.index]))
 
-                if selected_goal_index != None:
-                    st.session_state.selected_goal_object = st.session_state.goals[selected_goal_index]
-                elif "visualization" not in st.session_state or not st.session_state.visualization:
-                    st.info("Select a goal to visualize, or input your own goal")
+            if selected_goal_index != None:
+                st.session_state.selected_goal_object = st.session_state.goals[selected_goal_index]
 
-            else:
-                st.session_state.selected_goal_object = new_goal
+            elif "visualization" not in st.session_state or not st.session_state.visualization:
+                st.info("Select a goal to visualize, or input your own goal")
+
+            # else:
+            #     st.session_state.selected_goal_object = new_goal
 
             # GOAL SIDEBAR
             st.sidebar.write("## Notebook")
@@ -357,6 +373,8 @@ if openai_key and selected_dataset:
                                 if st.button("Load", use_container_width=True, key=f"load_{saved_goal_index}"):
                                     selected_goal_index = saved_goal_index
                                     st.session_state.selected_goal_object = st.session_state.saved_goals[saved_goal_index]
+                                    st.session_state.visualization = None
+                                    st.session_state.prompts = None
 
                             with saved_goal_col2:
                                 if st.button("Delete", use_container_width=True, key=f"delete_{saved_goal_index}"):
@@ -385,13 +403,18 @@ if openai_key and selected_dataset:
                     model=selected_model,
                     use_cache=use_cache)
 
-                st.session_state.visualization = lida.visualize(
-                    summary=summary,
-                    goal=selected_goal_object,
-                    textgen_config=textgen_config,
-                    library="seaborn")
+                # print(st.session_state.visualization)
+
+                if st.session_state.visualization is None:
+                    print("NEW VIZ")
+                    st.session_state.visualization = lida.visualize(
+                        summary=summary,
+                        goal=selected_goal_object,
+                        textgen_config=textgen_config,
+                        library="seaborn")
                 selected_vis = st.session_state.visualization
 
+                # print(st.session_state)
                 
                 if "visualization" in st.session_state and st.session_state.visualization:
 
@@ -401,68 +424,67 @@ if openai_key and selected_dataset:
                     with viz_col2:
                         viz_ops, prompter = st.tabs(["Viz Ops", "Prompter"])
 
-                        #################
-                        # VIZ OPS
-                        #################
-                        with viz_ops:
-                            st.write("### Visualization Operations")
+                #################
+                # VIZ OPS
+                #################
+                with viz_ops:
+                    st.write("### Visualization Operations")
 
-                            # EDIT VISUALIZATION
-                            with st.container(border=True):
-                                instruction = st.text_input("Input your edit instructions")
+                    # EDIT VISUALIZATION
+                    with st.container(border=True):
+                        instruction = st.text_input("Input your edit instructions")
 
-                                if st.button("Edit visualization"):
-                                    st.session_state.visualization = lida.edit(code=selected_vis[0].code,  summary=summary, instructions=[instruction], library="seaborn", textgen_config=textgen_config)
-                                    selected_vis = st.session_state.visualization
+                        if st.button("Edit visualization"):
+                            st.session_state.visualization = lida.edit(code=selected_vis[0].code,  summary=summary, instructions=[instruction], library="seaborn", textgen_config=textgen_config)
+                            selected_vis = st.session_state.visualization
+                            # this state doesn't carry over?
 
-                            #FIX VISUALIZATION
-                            with st.container(border=True):
-                                st.write("Encountered a bug? Visualization won't render? Repair the visualization automatically.")
-                                if st.button("Repair visualization"):
-                                    feedback = lida.evaluate(code=selected_vis[0].code,  goal=selected_goal_object, textgen_config=textgen_config, library="seaborn")[0] 
-                                    st.session_state.visualization = lida.repair(code=st.selected_vis[0].code, goal=selected_goal_object, summary=summary, feedback=feedback, textgen_config=textgen_config, library="seaborn")
-                                    selected_vis = st.session_state.visualization
+                    #FIX VISUALIZATION
+                    with st.container(border=True):
+                        st.write("Encountered a bug? Visualization won't render? Repair the visualization automatically.")
+                        if st.button("Repair visualization"):
+                            feedback = lida.evaluate(code=selected_vis[0].code,  goal=selected_goal_object, textgen_config=textgen_config, library="seaborn")[0] 
+                            st.session_state.visualization = lida.repair(code=st.selected_vis[0].code, goal=selected_goal_object, summary=summary, feedback=feedback, textgen_config=textgen_config, library="seaborn")
+                            selected_vis = st.session_state.visualization
 
-                            # VISUALIZATION CODEs
-                            with st.expander("Visualization Code"):
-                                selected_vis = st.session_state.visualization
-                                st.code(st.session_state.visualization[0].code)
+                    # VISUALIZATION CODEs
+                    with st.expander("Visualization Code"):
+                        # print(st.session_state.visualization)
+                        # selected_vis = st.session_state.visualization
+                        st.code(selected_vis[0].code)
+                              
+                # VISUALIZATION RENDER
+                with viz_col1:
+                    viz_title = selected_goal_object.question
+                    # st.write(st.session_state.visualization[0])
 
-                        #################
-                        # PROMPTER
-                        #################
-                        with prompter:
-                            st.write("### Prompter")
+                    # Rendering the visualization
+                    if selected_vis[0].raster:
+                        # print(selected_vis[0].code)
+                        from PIL import Image
+                        import io
+                        import base64
 
-                            if version == "LIDA+":
-                                prompter_tab_label = "Prompter and Insight Explorer Settings"
-                                insights_label = "Number of insights to generate"
+                        imgdata = base64.b64decode(selected_vis[0].raster)
+                        img = Image.open(io.BytesIO(imgdata))
+                        st.image(img, caption=viz_title, use_container_width=True)
 
-                            if version == "LIDA++":
-                                prompter_tab_label = "Prompter and Research Assistant Settings"
-                                insights_label = "Number of research to generate"
+                    # if there is no raster, then repair automatically
+                    else:
+                        feedback = lida.evaluate(code=selected_vis[0].code,  goal=selected_goal_object, textgen_config=textgen_config, library="seaborn")[0] 
+                        st.session_state.visualization = lida.repair(code=selected_vis[0].code, goal=selected_goal_object, summary=summary, feedback=feedback, textgen_config=textgen_config, library="seaborn")
+                        selected_vis = st.session_state.visualization
 
-                            with st.expander(prompter_tab_label):
-                                num_questions = st.number_input("Number of questions to generate", max_value=10, min_value=1)
-                                num_insights = st.number_input(insights_label, max_value=10, min_value=1)
-                            
-                            if st.button("Generate Questions"):
-                                st.session_state.prompts = lida.prompt(goal=selected_goal_object, textgen_config=textgen_config, n=num_questions) 
-
-                            
-                            if "prompts" in st.session_state and st.session_state.prompts:
-                                st.session_state.answers = ["" for _ in st.session_state.prompts]
-                                with st.container(height=300):
-                                    for i in range(len(st.session_state.prompts)):
-                                        st.session_state.answers[i] = st.text_area(st.session_state.prompts[i].question)
-                                
-                                if version == "LIDA+":
-                                    if st.button("Generate Insights"):
-                                        st.session_state.insights = lida.insights(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights, api_key=serper_key)
-
-                                if version == "LIDA++":
-                                    if st.button("Generate Research"):
-                                        st.session_state.researches = lida.research(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights, api_key=serper_key)
+                    if st.button("Reload"):
+                        print("reloading")
+                    if st.button("Save Visualization"):
+                        selected_vis = st.session_state.visualization
+                        print("hi")
+                        print(len(st.session_state.saved_visualizations))
+                        if selected_vis not in st.session_state.saved_visualizations:
+                            print("hello")
+                            st.session_state.saved_visualizations.append(copy.deepcopy(selected_vis))
+                            print(len(st.session_state.saved_visualizations))
 
                 # VISUALIZATION TABs
                 with saved_viz_tab:
@@ -482,70 +504,83 @@ if openai_key and selected_dataset:
                             saved_viz_col1, saved_viz_col2 = st.columns(2)
                             with saved_viz_col1:
                                 if st.button("Load", key=f"load_saved_viz_{saved_viz_index}", use_container_width=True):
-                                    selected_vis = st.session_state.saved_visualizations[saved_viz_index]
+                                    st.session_state.visualization = st.session_state.saved_visualizations[saved_viz_index]
+                                    selected_vis = st.session_state.visualization
+                                    st.session_state.prompts = None
+
                             with saved_viz_col2:
                                 if st.button("Delete", key=f"delete_saved_viz_{saved_viz_index}", use_container_width=True):
                                     st.session_state.saved_visualizations.pop(saved_viz_index)
                                     st.rerun() 
-                                
-                                    
-                    # Visualization render
-                    with viz_col1:
-                        viz_title = selected_goal_object.question
-                        # st.write(st.session_state.visualization[0])
 
-                        # Rendering the visualization
-                        if selected_vis[0].raster:
-                            from PIL import Image
-                            import io
-                            import base64
+                with saved_insights_tab:
+                    new_custom_insight = st.text_area("Add a custom insight here")
+                    new_custom_insight_object = Insight(insight=new_custom_insight, evidence={}, index=0)
+                    if new_custom_insight_object not in st.session_state.saved_insights and new_custom_insight != "":
+                        st.session_state.saved_insights.append(new_custom_insight_object)
 
-                            imgdata = base64.b64decode(selected_vis[0].raster)
-                            img = Image.open(io.BytesIO(imgdata))
-                            st.image(img, caption=viz_title, use_container_width=True)
+                    for saved_insight_index, saved_insight in enumerate(st.session_state.saved_insights):
+                        with st.container(border=True):
+                            st.write(saved_insight.insight)
 
-                        # if there is no raster, then repair automatically
-                        else:
-                            feedback = lida.evaluate(code=selected_vis[0].code,  goal=selected_goal_object, textgen_config=textgen_config, library="seaborn")[0] 
-                            st.session_state.visualization = lida.repair(code=selected_vis[0].code, goal=selected_goal_object, summary=summary, feedback=feedback, textgen_config=textgen_config, library="seaborn")
-                            selected_vis = st.session_state.visualization
-
-                        if st.button("Save Visualization"):
-                            if selected_vis not in st.session_state.saved_visualizations:
-                                st.session_state.saved_visualizations.append(copy.deepcopy(selected_vis))
-                    
-                    with saved_insights_tab:
-                        new_custom_insight = st.text_area("Add a custom insight here")
-                        new_custom_insight_object = Insight(insight=new_custom_insight, evidence={}, index=0)
-                        if new_custom_insight_object not in st.session_state.saved_insights and new_custom_insight != "":
-                            st.session_state.saved_insights.append(new_custom_insight_object)
-
-                        for saved_insight_index, saved_insight in enumerate(st.session_state.saved_insights):
-                            with st.container(border=True):
-                                st.write(saved_insight.insight)
-
-                                for saved_evidence_index, saved_evidence in enumerate(saved_insight.evidence):
-                                    st.markdown(
-                                        f"""
-                                        <a href="{saved_insight.evidence[saved_evidence][0]}">
-                                        <p style="font-size:12px; color:gray;">
-                                            [{saved_evidence}]{saved_insight.evidence[saved_evidence][1]}
-                                        </p>
-                                        </a>
-                                        """, 
-                                        unsafe_allow_html=True
-                                    )       
-                               
-                                    
-                                saved_insights_col1, saved_insights_col2 = st.columns(2)
-                                with saved_insights_col1:
-                                    if st.button("Load", key=f"load_saved_insights_{saved_insight_index}", use_container_width=True, disabled=True):
-                                        ...
-                                with saved_insights_col2:
-                                    if st.button("Delete", key=f"delete_saved_insights_{saved_insight_index}", use_container_width=True):
-                                        st.session_state.saved_insights.pop(saved_insight_index)
-                                        st.rerun() 
+                            for saved_evidence_index, saved_evidence in enumerate(saved_insight.evidence):
+                                st.markdown(
+                                    f"""
+                                    <a href="{saved_insight.evidence[saved_evidence][0]}">
+                                    <p style="font-size:12px; color:gray;">
+                                        [{saved_evidence}]{saved_insight.evidence[saved_evidence][1]}
+                                    </p>
+                                    </a>
+                                    """, 
+                                    unsafe_allow_html=True
+                                )       
                             
+                                
+                            saved_insights_col1, saved_insights_col2 = st.columns(2)
+                            with saved_insights_col1:
+                                if st.button("Load", key=f"load_saved_insights_{saved_insight_index}", use_container_width=True, disabled=True):
+                                    ...
+                            with saved_insights_col2:
+                                if st.button("Delete", key=f"delete_saved_insights_{saved_insight_index}", use_container_width=True):
+                                    st.session_state.saved_insights.pop(saved_insight_index)
+                                    st.rerun() 
+
+                #################
+                # PROMPTER
+                #################
+                with prompter:
+                    st.write("### Prompter")
+
+                    if version == "LIDA+":
+                        prompter_tab_label = "Prompter and Insight Explorer Settings"
+                        insights_label = "Number of insights to generate"
+
+                    if version == "LIDA++":
+                        prompter_tab_label = "Prompter and Research Assistant Settings"
+                        insights_label = "Number of research to generate"
+
+                    with st.expander(prompter_tab_label):
+                        num_questions = st.number_input("Number of questions to generate", max_value=10, min_value=1)
+                        num_insights = st.number_input(insights_label, max_value=10, min_value=1)
+                    
+                    if st.button("Generate Questions"):
+                        st.session_state.prompts = lida.prompt(goal=selected_goal_object, textgen_config=textgen_config, n=num_questions) 
+
+                    
+                    if "prompts" in st.session_state and st.session_state.prompts and st.session_state.prompts is not None:
+                        st.session_state.answers = ["" for _ in st.session_state.prompts]
+                        with st.container(height=300):
+                            for i in range(len(st.session_state.prompts)):
+                                st.session_state.answers[i] = st.text_area(st.session_state.prompts[i].question)
+                        
+                        if version == "LIDA+":
+                            if st.button("Generate Insights"):
+                                st.session_state.insights = lida.insights(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights, api_key=serper_key)
+
+                        if version == "LIDA++":
+                            if st.button("Generate Research"):
+                                st.session_state.researches = lida.research(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights, api_key=serper_key)
+                           
                 if version == "LIDA+":
                     if "insights" in st.session_state and st.session_state.insights:
                         st.write("## Insights")
