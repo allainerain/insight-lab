@@ -9,6 +9,7 @@ sys.path.append(os.path.abspath('..'))
 from llmx import llm, TextGenerationConfig, TextGenerator
 from lida.components import Manager
 from lida.datamodel import Goal, Persona, Insight, Prompt
+from lida.utils import read_dataframe
 
 # make data dir if it doesn't exist
 os.makedirs("data", exist_ok=True)
@@ -418,7 +419,7 @@ if openai_key and selected_dataset:
                 
                 if "visualization" in st.session_state and st.session_state.visualization:
 
-                    viz_col1, viz_col2 = st.columns([7,4], gap="medium")
+                    viz_col1, viz_col2 = st.columns([3,2], gap="medium")
 
                     # Viz ops or prompter
                     with viz_col2:
@@ -447,11 +448,21 @@ if openai_key and selected_dataset:
                             st.session_state.visualization = lida.repair(code=selected_vis[0].code, goal=selected_goal_object, summary=summary, feedback=feedback, textgen_config=textgen_config, library="seaborn")
                             selected_vis = st.session_state.visualization
 
-                    # VISUALIZATION CODEs
-                    with st.expander("Visualization Code"):
-                        # print(st.session_state.visualization)
-                        # selected_vis = st.session_state.visualization
-                        st.code(selected_vis[0].code)
+                    # # VISUALIZATION CODEs
+                    # with st.expander("Visualization Code"):
+                    #     # print(st.session_state.visualization)
+                    #     # selected_vis = st.session_state.visualization
+                    #     # st.code(selected_vis[0].code)
+                    #     code_display, code_editor = st.tabs(["Code", "Code Editor"])
+                    #     with code_display:
+                    #         st.code(selected_vis[0].code)
+                    #     with code_editor:
+                    #         code_edit = st.text_area('', selected_vis[0].code, height=500)
+                    #         if st.button("Edit code"):
+                    #             # selected_vis[0].code = code_edit
+                    #             st.session_state.visualization = lida.execute(code_specs=[code_edit], data=read_dataframe(selected_dataset), summary=summary, library="seaborn")
+                    #             selected_vis = st.session_state.visualization
+
                               
                 # VISUALIZATION RENDER
                 with viz_col1:
@@ -487,6 +498,25 @@ if openai_key and selected_dataset:
                             st.session_state.saved_visualizations.append(copy.deepcopy(selected_vis))
                             # print(len(st.session_state.saved_visualizations))
 
+                #################
+                # VIZ OPS
+                #################
+                with viz_ops:
+                    # VISUALIZATION CODEs
+                    with st.expander("Visualization Code"):
+                        # print(st.session_state.visualization)
+                        # selected_vis = st.session_state.visualization
+                        # st.code(selected_vis[0].code)
+                        code_display, code_editor = st.tabs(["Code", "Code Editor"])
+                        with code_display:
+                            st.code(selected_vis[0].code)
+                        with code_editor:
+                            code_edit = st.text_area('', selected_vis[0].code, height=500)
+                            if st.button("Edit code"):
+                                # selected_vis[0].code = code_edit
+                                st.session_state.visualization = lida.execute(code_specs=[code_edit], data=read_dataframe(selected_dataset), summary=summary, library="seaborn")
+                                selected_vis = st.session_state.visualization
+                
                 # VISUALIZATION TABs
                 with saved_viz_tab:
                     st.warning("The visualizations saved are only the raster. The goal that generated it is not saved.")
