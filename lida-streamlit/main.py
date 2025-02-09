@@ -284,7 +284,7 @@ if openai_key and selected_dataset:
                         st.session_state.goals.append(new_goal)
                         st.session_state.goal_questions.append(new_goal.question)
                     # st.session_state.visualization = None
-        print(st.session_state)
+        # print(st.session_state)
         if "goals" not in st.session_state or not st.session_state.goals:
             st.info("To continue, generate goals or add your own.")
 
@@ -406,7 +406,7 @@ if openai_key and selected_dataset:
                 # print(st.session_state.visualization)
 
                 if st.session_state.visualization is None:
-                    print("NEW VIZ")
+                    # print("NEW VIZ")
                     st.session_state.visualization = lida.visualize(
                         summary=summary,
                         goal=selected_goal_object,
@@ -444,7 +444,7 @@ if openai_key and selected_dataset:
                         st.write("Encountered a bug? Visualization won't render? Repair the visualization automatically.")
                         if st.button("Repair visualization"):
                             feedback = lida.evaluate(code=selected_vis[0].code,  goal=selected_goal_object, textgen_config=textgen_config, library="seaborn")[0] 
-                            st.session_state.visualization = lida.repair(code=st.selected_vis[0].code, goal=selected_goal_object, summary=summary, feedback=feedback, textgen_config=textgen_config, library="seaborn")
+                            st.session_state.visualization = lida.repair(code=selected_vis[0].code, goal=selected_goal_object, summary=summary, feedback=feedback, textgen_config=textgen_config, library="seaborn")
                             selected_vis = st.session_state.visualization
 
                     # VISUALIZATION CODEs
@@ -471,6 +471,7 @@ if openai_key and selected_dataset:
 
                     # if there is no raster, then repair automatically
                     else:
+                        # print("repairing")
                         feedback = lida.evaluate(code=selected_vis[0].code,  goal=selected_goal_object, textgen_config=textgen_config, library="seaborn")[0] 
                         st.session_state.visualization = lida.repair(code=selected_vis[0].code, goal=selected_goal_object, summary=summary, feedback=feedback, textgen_config=textgen_config, library="seaborn")
                         selected_vis = st.session_state.visualization
@@ -479,12 +480,12 @@ if openai_key and selected_dataset:
                         print("reloading")
                     if st.button("Save Visualization"):
                         selected_vis = st.session_state.visualization
-                        print("hi")
-                        print(len(st.session_state.saved_visualizations))
+                        # print("hi")
+                        # print(len(st.session_state.saved_visualizations))
                         if selected_vis not in st.session_state.saved_visualizations:
-                            print("hello")
+                            # print("hello")
                             st.session_state.saved_visualizations.append(copy.deepcopy(selected_vis))
-                            print(len(st.session_state.saved_visualizations))
+                            # print(len(st.session_state.saved_visualizations))
 
                 # VISUALIZATION TABs
                 with saved_viz_tab:
