@@ -606,11 +606,11 @@ if openai_key and selected_dataset:
                         
                         if version == "LIDA+":
                             if st.button("Generate Insights"):
-                                st.session_state.insights = lida.insights(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights, api_key=serper_key)
+                                st.session_state.insights = lida.insights(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights, api_key=serper_key, openai_api_key=openai_key)
 
                         if version == "LIDA++":
                             if st.button("Generate Research"):
-                                st.session_state.researches = lida.research(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights, api_key=serper_key)
+                                st.session_state.researches = lida.research(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights, api_key=serper_key, openai_api_key=openai_key)
                            
                 if version == "LIDA+":
                     if "insights" in st.session_state and st.session_state.insights:

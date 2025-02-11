@@ -213,7 +213,7 @@ class Manager(object):
     def insights(
             self, goal, answers, prompts, description: dict={}, persona: Persona = None, 
             textgen_config: TextGenerationConfig = TextGenerationConfig(),
-            n=5, api_key=""):
+            n=5, api_key="", openai_api_key=""):
         
         if isinstance(goal, dict):
             goal = Goal(**goal)
@@ -226,12 +226,12 @@ class Manager(object):
             persona = Persona(persona=persona, rationale="")
         
         return self.insight.generate(goal=goal, answers=answers, prompts=prompts, persona=persona, description=description,
-            text_gen=self.text_gen, textgen_config=textgen_config, n=n, api_key=api_key)
+            text_gen=self.text_gen, textgen_config=textgen_config, n=n, api_key=api_key,  openai_api_key=openai_api_key)
     
     def research(
             self, goal, answers, prompts, description: dict={}, persona: Persona = None, 
             textgen_config: TextGenerationConfig = TextGenerationConfig(),
-            n=5, api_key=""):
+            n=5, api_key="", openai_api_key=""):
         
         if isinstance(goal, dict):
             goal = Goal(**goal)
@@ -244,7 +244,7 @@ class Manager(object):
             persona = Persona(persona=persona, rationale="")
         
         return self.insight.research(goal=goal, answers=answers, prompts=prompts, persona=persona, description=description,
-            text_gen=self.text_gen, textgen_config=textgen_config, n=n, api_key=api_key)
+            text_gen=self.text_gen, textgen_config=textgen_config, n=n, api_key=api_key, openai_api_key=openai_api_key)
     
     def visualize(
         self,

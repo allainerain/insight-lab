@@ -34,7 +34,7 @@ THE OUTPUT MUST BE A CODE SNIPPET OF A VALID LIST OF JSON OBJECTS. IT MUST USE T
                 "2": ["URL", "Quoted Sentence"]
             }
         }
-    ]
+    ]f
 ```
 THE OUTPUT SHOULD ONLY USE THE JSON FORMAT ABOVE. Make sure that the JSON format is free from any errors. Any quotes within strings need to be escaped with a backslash (\").
 """
@@ -167,7 +167,7 @@ class InsightExplorer(object):
     def generate(
             self, goal: Goal, answers: list[str], prompts: Prompt, 
             textgen_config: TextGenerationConfig, text_gen: TextGenerator, persona:Persona = None, n=5, 
-            description: dict = {}, api_key: str = "" ):
+            description: dict = {}, api_key: str = "", openai_api_key: str="" ):
         
         """Generate the search phrases"""
         search_phrases = self.generate_search_phrases(goal=goal, answers=answers, prompts=prompts, textgen_config=textgen_config, text_gen=text_gen)
@@ -192,7 +192,7 @@ class InsightExplorer(object):
 
         """Retrieve the most relevant documents"""
         retriever = EmbeddingRetriever()
-        references = retriever.retrieve_embeddings(contents, search_results, answers)
+        references = retriever.retrieve_embeddings(contents, search_results, answers, openai_api_key)
         # print(references)
 
         """Building the insight given the references"""
@@ -262,7 +262,7 @@ class InsightExplorer(object):
     def research(
             self, goal: Goal, answers: list[str], prompts: Prompt, 
             textgen_config: TextGenerationConfig, text_gen: TextGenerator, persona:Persona = None, n=5, 
-            description: dict = {}, api_key: str = "" ):
+            description: dict = {}, api_key: str = "",  openai_api_key="" ):
         
         """Generate the search phrases"""
         search_phrases = self.generate_search_phrases(goal=goal, answers=answers, prompts=prompts, textgen_config=textgen_config, text_gen=text_gen)
@@ -287,7 +287,7 @@ class InsightExplorer(object):
 
         """Retrieve the most relevant documents"""
         retriever = EmbeddingRetriever()
-        references = retriever.retrieve_embeddings(contents, search_results, answers)
+        references = retriever.retrieve_embeddings(contents, search_results, answers, openai_api_key)
         # print(references)
 
         """Building the insight given the references"""
