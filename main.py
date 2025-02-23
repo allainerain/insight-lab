@@ -10,6 +10,7 @@ from llmx import llm, TextGenerationConfig, TextGenerator
 from lida.components import Manager
 from lida.datamodel import Goal, Persona, Insight, Prompt
 from lida.utils import read_dataframe
+from code_editor import code_editor
 
 # make data dir if it doesn't exist
 os.makedirs("data", exist_ok=True)
@@ -172,11 +173,18 @@ if openai_key:
 
 if openai_key and selected_dataset:
 
+    # PERSONA
+    st.write("## Motivation")
+    persona = st.text_area("Describe who you are and your goal in exploring the dataset. This will be helpful in tailoring recommendations based on your goal.")
+    persona = Persona(persona=persona, rationale="")
+
     #################
     # SUMMARIZER
     #################
-    st.write("## Summary")
-
+    st.write("## Dataset")
+    st.write(read_dataframe(selected_dataset))
+    
+    st.write("## Dataset Summary")
     # Initlaize LIDA
     lida = Manager(text_gen=llm("openai", api_key=openai_key), serper_api_key=serper_api_key, qdrant_api_key=qdrant_api_key, qdrant_url=qdrant_url)
     textgen_config = TextGenerationConfig(
@@ -217,7 +225,7 @@ if openai_key and selected_dataset:
         nfields = []
         for field in fields:
             flatted_fields = {}
-            flatted_fields["column"] = field["column"]
+            flatted_fields["variables"] = field["column"]
             for row in field["properties"].keys():
                 if row != "samples":
                     flatted_fields[row] = field["properties"][row]
@@ -253,29 +261,25 @@ if openai_key and selected_dataset:
         st.session_state.goal_questions = []
 
     if summary:
-        # PERSONA
-        st.sidebar.write("### Motivation")
-        persona = st.sidebar.text_area("Describe who you are and your goal in exploring the dataset. This will be helpful in tailoring recommendations based on your goal.")
-        persona = Persona(persona=persona, rationale="")
-
         # GOAL
         with st.container(border=True):
             
-            generate_goals_tab, custom_goal_tab = st.tabs(["Generate Goal", "Custom Goal"])
+            custom_goal_tab, generate_goals_tab = st.tabs(["Custom Goal", "Generate Goal"])
             
             # Generate goals settings
             with generate_goals_tab:
+                st.write("Don't know where to begin? Generate suggested things to explore with the data.")
                 custom_goal = False
 
                 # Select number 
                 num_goals = st.number_input("Number of goals to generate", max_value=10, min_value=1)
 
                 # Select variables to explore
-                options = ["category", "number", "date", "three", "two"]
+                options = list(read_dataframe(selected_dataset))
                 explore = st.pills("Variables to explore", options, selection_mode="multi")
 
                 # Add insight to explore
-                insight_text = st.text_input("Goals should explore this insight")
+                insight_text = st.text_input("Do you have an insight you want LIDA to explore?")
 
                 # Set insight to None if there's no input
                 if not insight_text.strip(): 
@@ -290,7 +294,7 @@ if openai_key and selected_dataset:
 
             # Custom goal settings
             with custom_goal_tab:
-                user_goal = st.text_input("Describe your goal")
+                user_goal = st.text_input("Describe your goal. What do you want to explore in your dataset?")
                 if user_goal:
                     if user_goal not in st.session_state.goal_questions:
                         new_goal = Goal(question=user_goal, visualization=user_goal, rationale="", persona=persona, index=len(st.session_state.goal_questions))
@@ -499,9 +503,9 @@ if openai_key and selected_dataset:
                         st.session_state.visualization = lida.repair(code=selected_vis[0].code, goal=selected_goal_object, summary=summary, feedback=feedback, textgen_config=textgen_config, library="seaborn")
                         selected_vis = st.session_state.visualization
 
-                    if st.button("Reload"):
-                        print("reloading")
-                    if st.button("Save Visualization"):
+                    # if st.button("Reload"):
+                    #     print("reloading")
+                    if st.button("Save Visualization to Notebook"):
                         selected_vis = st.session_state.visualization
                         # print("hi")
                         # print(len(st.session_state.saved_visualizations))
@@ -509,25 +513,30 @@ if openai_key and selected_dataset:
                             # print("hello")
                             st.session_state.saved_visualizations.append(copy.deepcopy(selected_vis))
                             # print(len(st.session_state.saved_visualizations))
-
-                #################
-                # VIZ OPS
-                #################
-                with viz_ops:
-                    # VISUALIZATION CODEs
+                    
                     with st.expander("Visualization Code"):
                         # print(st.session_state.visualization)
                         # selected_vis = st.session_state.visualization
                         # st.code(selected_vis[0].code)
-                        code_display, code_editor = st.tabs(["Code", "Code Editor"])
+                        code_display, code_edit = st.tabs(["Code", "Code Editor"])
                         with code_display:
                             st.code(selected_vis[0].code)
-                        with code_editor:
-                            code_edit = st.text_area('', selected_vis[0].code, height=500)
+                        with code_edit:
+                            # custom_btns = [{"name": "Edit Code","feather": "Play","primary": True,"hasText": True,"showWithIcon": True,"commands": ["submit"],"style": {"bottom": "0.44rem","right": "0.4rem"}}]
+                            # code_response_dict = code_editor(selected_vis[0].code, height="500px", buttons=custom_btns)
+                            code_edited = st.text_area('', selected_vis[0].code, height=500)
                             if st.button("Edit code"):
                                 # selected_vis[0].code = code_edit
-                                st.session_state.visualization = lida.execute(code_specs=[code_edit], data=read_dataframe(selected_dataset), summary=summary, library="seaborn")
+                                st.session_state.visualization = lida.execute(code_specs=[code_edited], data=read_dataframe(selected_dataset), summary=summary, library="seaborn")
                                 selected_vis = st.session_state.visualization
+                                st.rerun(scope="app")
+                            # print("A", st.session_state.visualization[0].code)
+                            # print("B",code_response_dict["text"], "C")
+                            # print()
+                            # if st.session_state.visualization[0].code != code_response_dict["text"] and code_response_dict["text"] != "  ":
+                            #     selected_vis[0].code = code_response_dict["text"]
+                            #     st.session_state.visualization = lida.execute(code_specs=[code_response_dict["text"]], data=read_dataframe(selected_dataset), summary=summary, library="seaborn")
+                            #     selected_vis = st.session_state.visualization                    
                 
                 # VISUALIZATION TABs
                 with saved_viz_tab:
@@ -603,8 +612,8 @@ if openai_key and selected_dataset:
                         insights_label = "Number of research to generate"
 
                     with st.expander(prompter_tab_label):
-                        num_questions = st.number_input("Number of questions to generate", max_value=10, min_value=1)
-                        num_insights = st.number_input(insights_label, max_value=10, min_value=1)
+                        num_questions = st.number_input("Number of questions to generate", max_value=10, min_value=1, value=5)
+                        num_insights = st.number_input(insights_label, max_value=10, min_value=1, value=5)
                     
                     if st.button("Generate Questions"):
                         st.session_state.prompts = lida.prompt(goal=selected_goal_object, textgen_config=textgen_config, n=num_questions) 
@@ -623,7 +632,8 @@ if openai_key and selected_dataset:
                         if version == "LIDA++":
                             if st.button("Generate Research"):
                                 st.session_state.researches = lida.research(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights)
-                           
+                                # print(st.session_state.researches)
+
                 if version == "LIDA+":
                     if "insights" in st.session_state and st.session_state.insights:
                         st.write("## Insights")
@@ -715,7 +725,7 @@ if openai_key and selected_dataset:
                                         st.session_state.research_answers[i] = ""
 
                                     # Possible references
-                                    with st.expander("Possible references"):
+                                    with st.expander("Suggested references"):
                                         for evidence_index, evidence in enumerate(research.evidence):
                                             st.markdown(
                                                 f"""

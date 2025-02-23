@@ -48,42 +48,43 @@ class GoalExplorer():
             - Two: Miscellaneous goals that just include 2 variables
         """
         
-        dist = {'category': 0, 'date': 0, 'number': 0, 'three': 0, 'none': 0}
-        dtypes = set()
+        dist = {'none': n}
+        # dtypes = set()
 
-        """Collect the data types from the summary"""
-        for field in summary['fields']:
-            dtypes.add(field['properties']['dtype'])
+        # """Collect the data types from the summary"""
+        # for field in summary['fields']:
+        #     dtypes.add(field['properties']['dtype'])
         
-        if ('category' in explore or 'string' in explore) and ('category' in dtypes or 'string' in dtypes):
-            dist['category'] = n // (len(explore) + 1)
-        if 'date' in explore and 'date' in dtypes:
-            dist['date'] = n // (len(explore) + 1)
-        if 'number' in explore and 'number' in dtypes:
-            dist['number'] = n // (len(explore) + 1)   
-        if 'three' in explore:
-            dist['three'] = n // (len(explore) + 1)   
-
-        dist['none'] = n - dist['category'] - dist['date'] - dist['number'] - dist['three']
+        # if ('category' in explore or 'string' in explore) and ('category' in dtypes or 'string' in dtypes):
+        #     dist['category'] = n // (len(explore) + 1)
+        # if 'date' in explore and 'date' in dtypes:
+        #     dist['date'] = n // (len(explore) + 1)
+        # if 'number' in explore and 'number' in dtypes:
+        #     dist['number'] = n // (len(explore) + 1)   
+        # if 'three' in explore:
+        #     dist['three'] = n // (len(explore) + 1)   
+        
+        for feature in explore:
+            dist[feature] = n // (len(explore) + 1)   
+            dist['none'] -= dist[feature]
+        
+        # dist['none'] = n - dist['category'] - dist['date'] - dist['number'] - dist['three']
 
         return dist
     
     def generate_goals(self, summary: dict, textgen_config: TextGenerationConfig, 
-                        text_gen: TextGenerator, n: int, persona: Persona, focus: str,
+                        text_gen: TextGenerator, n: int, persona: Persona, 
+                        # focus: str,
+                        explore: list[str],
                         insights: list[Insight] = []) -> list[Goal]:
         
         if n == 0:
             return []
         
         # Prompt: add focus for data type
-        if focus in ['category', 'date', 'number']:
-            user_prompt = f"""Generate a TOTAL of {n} goals. All the goals MUST FOCUS on a column with a '{focus}' data type."""
-        elif focus in ['three']:
-            user_prompt = f"""Generate a TOTAL of {n} goals. All the goals must explore the relationship of EXACTLY {focus} variables. """
-        elif focus == 'none':
-            user_prompt = f"""Generate a TOTAL of {n} goals."""
-        else:
-            raise ValueError(f"Unsupported focus type: {focus}. Please provide a valid focus type.")
+        user_prompt = f"""Generate a TOTAL of {n} goals."""
+        if explore != []:
+            user_prompt = f"""The goals MUST FOCUS on the following variables: '{" ".join(str(x) for x in explore)}'"""
         
         # Prompt: add  summary
         user_prompt += f"\nThe goals should be based on the data summary below, \n\n{summary}\n\n"
@@ -167,13 +168,16 @@ class GoalExplorer():
         
         """Generate goals given a summary of data"""
 
-        dist = self.calculate_distribution(summary=summary, n=n, explore=explore)
+        # dist = self.calculate_distribution(summary=summary, n=n, explore=explore)
         goals = []
-        explore.append('none')
+        # explore.append('none')
 
-        for focus in explore:
-            """Generate goals given a focus type"""
-            goals += self.generate_goals(summary=summary, insights=insights, textgen_config=textgen_config, text_gen=text_gen, n=dist[focus], persona=persona, focus=focus)
+        # for focus in explore:
+        #     """Generate goals given a focus type"""
+        #     print(focus, dist[focus])
+        #     goals += self.generate_goals(summary=summary, insights=insights, textgen_config=textgen_config, text_gen=text_gen, n=dist[focus], persona=persona, focus=focus)
+        
+        goals += self.generate_goals(summary=summary, insights=insights, textgen_config=textgen_config, text_gen=text_gen, n=n, persona=persona, explore=explore)
 
         # Fix the indexing of the goals
         for i in range(len(goals)):
