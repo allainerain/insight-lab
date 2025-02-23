@@ -67,7 +67,7 @@ with st.sidebar.expander("LIDA Version"):
     )
 
 with st.sidebar.expander("Generation Settings"):
-    openai_tab, serper_tab = st.tabs(["OpenAI Config", "Serper Config"])
+    openai_tab, serper_tab, qdrant_tab = st.tabs(["OpenAI Config", "Serper Config", "Qdrant Config"])
 
     # Openai settings
     with openai_tab:
@@ -105,11 +105,23 @@ with st.sidebar.expander("Generation Settings"):
 
         # Set serper key
         st.write("#### Serper Key")
-        serper_key = st.text_input("Enter Serper key")
+        serper_api_key = st.text_input("Enter Serper key")
         
-        if serper_key:
-            display_serper_key = serper_key[:2] + "*" * (len(serper_key) - 5) + serper_key[-3:]
+        if serper_api_key:
+            display_serper_key = serper_api_key[:2] + "*" * (len(serper_api_key) - 5) + serper_api_key[-3:]
             st.write(f"Current key: {display_serper_key}")
+
+    # Serper settings
+    with qdrant_tab:
+
+        # Set serper key
+        st.write("#### Qdrant Keys")
+        qdrant_api_key = st.text_input("Enter Qdrant key")
+        qdrant_url= st.text_input("Enter Qdrant URL")
+        
+        if qdrant_api_key:
+            display_qdrant_key = qdrant_api_key[:2] + "*" * (len(qdrant_api_key) - 5) + qdrant_api_key[-3:]
+            st.write(f"Current key: {display_qdrant_key}")
 
 
 if openai_key:
@@ -166,7 +178,7 @@ if openai_key and selected_dataset:
     st.write("## Summary")
 
     # Initlaize LIDA
-    lida = Manager(text_gen=llm("openai", api_key=openai_key))
+    lida = Manager(text_gen=llm("openai", api_key=openai_key), serper_api_key=serper_api_key, qdrant_api_key=qdrant_api_key, qdrant_url=qdrant_url)
     textgen_config = TextGenerationConfig(
         n=1,
         temperature=temperature,
@@ -606,11 +618,11 @@ if openai_key and selected_dataset:
                         
                         if version == "LIDA+":
                             if st.button("Generate Insights"):
-                                st.session_state.insights = lida.insights(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights, api_key=serper_key, openai_api_key=openai_key)
+                                st.session_state.insights = lida.insights(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights)
 
                         if version == "LIDA++":
                             if st.button("Generate Research"):
-                                st.session_state.researches = lida.research(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights, api_key=serper_key, openai_api_key=openai_key)
+                                st.session_state.researches = lida.research(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights)
                            
                 if version == "LIDA+":
                     if "insights" in st.session_state and st.session_state.insights:
