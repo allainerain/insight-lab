@@ -1,51 +1,117 @@
-import yaml
-import os
-import faiss
-import numpy as np
+import nltk
+from nltk.tokenize import sent_tokenize
+import requests
+import qdrant_client
+from qdrant_client.models import Distance, VectorParams, PointStruct
+import concurrent.futures
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.docstore.in_memory import InMemoryDocstore
-from langchain_community.vectorstores import FAISS
-
+nltk.download('punkt_tab')
 class EmbeddingRetriever:
-    TOP_K = 3  # Number of top K documents to retrieve
+    def __init__(self, qdrant_host: str, qdrant_api_key: str):
 
-    def __init__(self):
-        # Initialize the text splitter
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=0
+        # Initialize Qdrant client with API key for a remote instance
+        self.client = qdrant_client.QdrantClient(
+            url=qdrant_host,  # Qdrant cloud/self-hosted URL
+            api_key=qdrant_api_key   # Qdrant API Key for authentication
         )
 
-    def retrieve_embeddings(self, contents_list: list, link_list: list, queries: list, openai_api_key: str):
-        # Retrieve embeddings for a given list of contents and a query
-        metadatas = [{'url': link} for link in link_list]
-        texts = self.text_splitter.create_documents(contents_list, metadatas=metadatas)
-
-        # print(texts, metadatas)
-
-        embeddings = OpenAIEmbeddings(model='text-embedding-ada-002', openai_api_key=openai_api_key)
-        document_embeddings = [embeddings.embed_query(doc.page_content) for doc in texts]
-        embedding_dim = len(document_embeddings[0])
-        index = faiss.IndexFlatL2(embedding_dim)
-
-        index.add(np.array(document_embeddings).astype("float32"))
-
-        db = FAISS(
-            embedding_function=embeddings,
-            index=index,
-            docstore=InMemoryDocstore({str(i): doc for i, doc in enumerate(texts)}),
-            index_to_docstore_id={i: str(i) for i in range(len(texts))}
-        )
+        self.collection_name = "Collection"
         
-        # Create a retriever from the database to find relevant documents
-        references = set()
-        retriever = db.as_retriever(search_kwargs={"k": self.TOP_K})
+        # Check if the collection exists before creating it
+        existing_collections = self.client.get_collections().collections 
 
-        for query in queries:
-            curr_references = retriever.get_relevant_documents(query)
-            for reference in curr_references:
-                references.add((reference.metadata['url'], reference.page_content))
+        if not any(col.name == self.collection_name for col in existing_collections):
+            self.client.create_collection(
+                collection_name=self.collection_name,
+                vectors_config=VectorParams(size=1024, distance=Distance.COSINE),  
+            )
 
-        return references
+    def split_by_sentences(self, contents_list):
+        """Splits text into sentences dynamically."""
+        processed_texts = []
+        
+        for content in contents_list:
+            sentences = sent_tokenize(content)  # Tokenize into sentences
+            processed_texts.extend(sentences)  # Store individual sentences
+        
+        return processed_texts
+
+    def retrieve_embeddings(self, contents_list: list, link_list: list, queries: list):
+        """Embeds and stores documents in Qdrant for retrieval."""
+        
+        # Split text into sentence-based chunks
+        metadatas = [{'url': link} for link in link_list]
+        processed_texts = self.split_by_sentences(contents_list)
+        
+        # Get Jina embeddings
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer jina_9971746643d64fd591bf25981e4e4ab3LFNJs8tk6vjvm6MpEgdcjHhNNkaj"
+        }
+        payload = {
+            "input": processed_texts,
+            "model": "jina-embeddings-v3",
+            "late_chunking": True,
+        }
+        response = requests.post("https://api.jina.ai/v1/embeddings", headers=headers, json=payload)
+
+        if response.status_code == 200:
+            embedding_data = response.json()
+            embeddings = [item["embedding"] for item in embedding_data.get("data", [])]
+        else:
+            print("Error:", response.text)
+            return
+
+        # Store embeddings in Qdrant
+        points = [
+            PointStruct(
+                id=i,
+                vector=embeddings[i],
+                payload={"text": processed_texts[i], "url": metadatas[i % len(metadatas)]["url"]},
+            )
+            for i in range(len(embeddings))
+        ]
+        
+        self.client.upsert(collection_name=self.collection_name, points=points)
+        print(f"Stored {len(points)} embeddings in Qdrant.")
+
+        results = []
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = list(executor.map(self.search_relevant_references, queries))
+        
+        return results
+
+
+    def search_relevant_references(self, query: str, top_k: int = 5):
+        """Retrieves the most relevant references from Qdrant based on a query."""
+        
+        # Get Jina embedding for the query
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer jina_9971746643d64fd591bf25981e4e4ab3LFNJs8tk6vjvm6MpEgdcjHhNNkaj"
+        }
+        payload = {
+            "input": [query],
+            "model": "jina-embeddings-v3"
+        }
+        response = requests.post("https://api.jina.ai/v1/embeddings", headers=headers, json=payload)
+
+        if response.status_code == 200:
+            query_embedding = response.json()["data"][0]["embedding"]
+        else:
+            print("Error getting query embedding:", response.text)
+            return []
+
+        # Perform nearest neighbor search in Qdrant
+        search_results = self.client.search(
+            collection_name=self.collection_name,
+            query_vector=query_embedding,
+            limit=top_k,
+        )
+
+        # Extract and return results
+        return [
+            {"text": hit.payload["text"], "url": hit.payload["url"], "score": hit.score}
+            for hit in search_results
+        ]
