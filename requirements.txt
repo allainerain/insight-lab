@@ -11,3 +11,5 @@ seaborn
 beautifulsoup4
 streamlit
 lxml
+nltk
+qdrant-client
