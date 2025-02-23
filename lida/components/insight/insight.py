@@ -1,25 +1,37 @@
 import json
 import logging
 from lida.utils import clean_code_snippet
-from llmx import TextGenerator, TextGenerationConfig, TextGenerationResponse
+from llmx import TextGenerator, TextGenerationConfig
 from lida.datamodel import Goal, Prompt, Insight, Persona, Research
 from ..insight.webscraper import WebScraper
 from ..insight.retrieval import EmbeddingRetriever
+from ..insight.search import Searcher
+import concurrent.futures
 
-import http.client
 import json
 
 SYSTEM_PROMPT = """
-You are a an experienced data analyst who can generate a given number of meaningful AND creative insights that people may miss at a first glance about a chart, given the goal of the data visualization, a series of questions answered by a user. MAKE AN INSIGHT BASED ON THE REFERENCES.
+You are an experienced data analyst tasked with generating a specific number of meaningful and creative insights from a given data visualization. Your insights should go beyond surface-level observations and highlight patterns that might be overlooked.
 
-Each insight MUST have the following:
-- A hypothesis about the data given the question and answer prompts.
-- Should be creative, complex, specific and unexpected and be multi-dimensional.
-- State specific points from the web search results in the insight.
-- An explanation on how you derived the hypothesis or generalization from the web search and from your own knowledge. 
-- Make sure to cite results using [number] notation after the quote, MUST CITE THE CORRECT EVIDENCE BASED ON THE EVIDENCE LIST.
-- Must be logical and correct. If the user's answers sound wrong, YOU MUST POINT IT OUT WITH CREDIBLE SOURCES FROM THE WEB.
+For each insight, follow these guidelines:
 
+1. Form a Hypothesis
+- Develop a well-thought-out hypothesis based on the user’s provided goal, their answers to specific questions, and relevant evidence.
+- Ensure that the hypothesis is multi-dimensional, creative, and unexpected.
+
+2. Incorporate Supporting Evidence
+- Use references from the provided web search results to strengthen your insight.
+- Cite the correct reference(s) using [number] notation, ensuring that the citation aligns accurately with the evidence list.
+- When citing references, reindex the references based only on those that are actually used. For each insight, restart the reference list count to 1.
+
+3. Explain Your Thought Process
+- Clearly state how you arrived at the hypothesis using both the web search results and your own analytical knowledge.
+- If a user’s answer seems incorrect or misleading, point it out with credible sources from the web.
+
+4. Ensure Logical Soundness
+- The insight must be logical and factually correct.
+- All claims should be substantiated with proper evidence.
+- If one of the user's claims are wrong, you must point it out.
 """
 
 FORMAT_INSTRUCTIONS = """
@@ -28,35 +40,16 @@ THE OUTPUT MUST BE A CODE SNIPPET OF A VALID LIST OF JSON OBJECTS. IT MUST USE T
 ```[
         { 
             "index": 0,  
-            "insight": "The x could indicate (rest of insight) because of some reason [1] and some other reason [2]", 
+            "insight": "The (finding) could indicate (rest of insight) because of some reason [1] and some other reason [2]", 
             "evidence": {
                 "1": ["URL", "Quoted Sentence"], 
-                "2": ["URL", "Quoted Sentence"]
+                "2": ["URL", "Quoted Sentence"],
+                ...
             }
         }
     ]f
 ```
 THE OUTPUT SHOULD ONLY USE THE JSON FORMAT ABOVE. Make sure that the JSON format is free from any errors. Any quotes within strings need to be escaped with a backslash (\").
-"""
-
-SYSTEM_PROMPT_SEARCH ="""
-You are a helpful and highly skilled data analyst who is trained to find the most relevant resources and references to support certain observations of a data visualization. 
-
-You must generate search phrases that would result in the most relevant web results that would explain or support certain observations about the visualization.
-
-The search phrases must be:
-1. Relevant to an observation about the visualization
-2. Specific enough to confirm the answers given to the questions
-3. Diverse enough from each other such that it would not cause overlapping search results
-"""
-
-FORMAT_INSTRUCTIONS_SEARCH = """
-THE OUTPUT MUST BE A CODE SNIPPET OF A VALID LIST OF STRINGS (the search phrases). IT MUST USE THE FOLLOWING FORMAT:
-
-```["What are the...", "Most popular..."]
-```
-
-THE OUTPUT SHOULD ONLY USE THE LIST FORMAT ABOVE.
 """
 
 SYSTEM_PROMPT_RA = """
@@ -78,7 +71,8 @@ THE OUTPUT MUST BE A CODE SNIPPET OF A VALID LIST OF JSON OBJECTS. IT MUST USE T
             "question": "prompting question", 
             "evidence": {
                 "1": ["URL", "Quoted Sentence"], 
-                "2": ["URL", "Quoted Sentence"]
+                "2": ["URL", "Quoted Sentence"],
+                ...
             }
         }
     ]
@@ -90,109 +84,39 @@ logger = logging.getLogger("lida")
 
 class InsightExplorer(object):
     """Generate insights given some answers to questions"""
+    def __init__(self, serper_api_key, qdrant_api_key, qdrant_url):
+        self.searcher = Searcher(serper_api_key=serper_api_key)
+        self.retriever = EmbeddingRetriever(qdrant_host=qdrant_url, qdrant_api_key=qdrant_api_key)
 
-    def __init__(self) -> None:
-        pass
-
-    def search(self, search_phrase: str, api_key: str):
-        """Search the web given some search phrase"""
-
-        conn = http.client.HTTPSConnection("google.serper.dev")
-
-        payload = json.dumps({
-            "q": search_phrase,
-            "num": 2
-        })
-
-        headers = {
-            'X-API-KEY': api_key,
-            'Content-Type': 'application/json'
-        }
-
-        conn.request("POST", "/search", payload, headers)
-        res = conn.getresponse()
-        data = res.read()
-        data = data.decode("utf-8")
-
-        # Parse the JSON response
-        search_results = json.loads(data)
-        
-        # Extract the links from the 'organic' search results
-        links = [result['link'] for result in search_results.get('organic', [])]
-        
-        return links
-    
-    def generate_search_phrases(self, goal: Goal, answers: list[str], prompts: Prompt,
-                                textgen_config: TextGenerationConfig, text_gen: TextGenerator, n=5):
-        user_prompt = f"""
-        \nThis is the visualization:
-        \nQuestion: {goal.question}
-        \nVisualization: {goal.visualization}
-        \nRationale: {goal.rationale}        
-
-        \nHere are the questions and the answers regarding the visualization, which are the observations:
-        """
-
-        # Prompt: Add question and answer pairs
-        for i in range(len(prompts)):
-            user_prompt += f"""
-            \n\n Question {prompts[i].index + 1}: {prompts[i].question}
-            \n Answer: {answers[i]}
-            """
-
-        user_prompt += f"""
-        Build a summary from the given answers and questions about the visualization. From the summary, generate a total of {n} search phrases.
-        """
-
-        # print(user_prompt)
-
-        messages = [
-            {"role": "system", "content": SYSTEM_PROMPT_SEARCH},
-            {"role": "assistant", "content": f"{user_prompt}\n\n{FORMAT_INSTRUCTIONS_SEARCH}\n\nThe generated {n} search phrases are:\n"}
-        ]
-
-        result: list[Insight] = text_gen.generate(messages=messages, config=textgen_config)
-
-        try:
-            result = clean_code_snippet(result.text[0]["content"])
-            result = json.loads(result)
-        except Exception as e:
-            logger.info(f"Error decoding JSON: {result.text[0]['content']}")
-            print(f"Error decoding JSON: {result.text[0]['content']}")
-            raise ValueError(
-                "The model did not return a valid LIST object while attempting to generate goals. Consider using a larger model or a model with a higher max token length.")
-
-        return result
-    
     def generate(
             self, goal: Goal, answers: list[str], prompts: Prompt, 
             textgen_config: TextGenerationConfig, text_gen: TextGenerator, persona:Persona = None, n=5, 
-            description: dict = {}, api_key: str = "", openai_api_key: str="" ):
+            description: dict = {}):
         
         """Generate the search phrases"""
-        search_phrases = self.generate_search_phrases(goal=goal, answers=answers, prompts=prompts, textgen_config=textgen_config, text_gen=text_gen)
+        search_phrases = self.searcher.generate_search_phrases(goal=goal, answers=answers, prompts=prompts, textgen_config=textgen_config, text_gen=text_gen)
 
         """Take web search results for each search phrase"""
         search_results = []
         for search_phrase in search_phrases:
-            curr_search_results = self.search(search_phrase=search_phrase, api_key=api_key)
+            curr_search_results = self.searcher.search(search_phrase=search_phrase)
             for result in curr_search_results:
                 search_results.append(result)
         
         # print(search_results)
-
         scraper = WebScraper(user_agent='windows')
         contents = []
 
-        for search_result in search_results:
-            content = scraper.scrape_url(search_result)
-            contents.append(content)
+        # Scrape in parallel
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = list(executor.map(scraper.scrape_url, search_results))
 
+        # Store the results in contents
+        contents.extend(results)
         # print(contents)
 
         """Retrieve the most relevant documents"""
-        retriever = EmbeddingRetriever()
-        references = retriever.retrieve_embeddings(contents, search_results, answers, openai_api_key)
+        references = self.retriever.retrieve_embeddings(contents, search_results, search_phrases)
         # print(references)
 
         """Building the insight given the references"""
@@ -262,33 +186,33 @@ class InsightExplorer(object):
     def research(
             self, goal: Goal, answers: list[str], prompts: Prompt, 
             textgen_config: TextGenerationConfig, text_gen: TextGenerator, persona:Persona = None, n=5, 
-            description: dict = {}, api_key: str = "",  openai_api_key="" ):
+            description: dict = {}):
         
         """Generate the search phrases"""
-        search_phrases = self.generate_search_phrases(goal=goal, answers=answers, prompts=prompts, textgen_config=textgen_config, text_gen=text_gen)
+        search_phrases = self.searcher.generate_search_phrases(goal=goal, answers=answers, prompts=prompts, textgen_config=textgen_config, text_gen=text_gen)
 
         """Take web search results for each search phrase"""
         search_results = []
         for search_phrase in search_phrases:
-            curr_search_results = self.search(search_phrase=search_phrase, api_key=api_key)
+            curr_search_results = self.searcher.search(search_phrase=search_phrase)
             for result in curr_search_results:
                 search_results.append(result)
         
         # print(search_results)
-
         scraper = WebScraper(user_agent='windows')
         contents = []
 
-        for search_result in search_results:
-            content = scraper.scrape_url(search_result)
-            contents.append(content)
+        # Scrape in parallel
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = list(executor.map(scraper.scrape_url, search_results))
 
+        # Store the results in contents
+        contents.extend(results)
         # print(contents)
 
         """Retrieve the most relevant documents"""
-        retriever = EmbeddingRetriever()
-        references = retriever.retrieve_embeddings(contents, search_results, answers, openai_api_key)
-        # print(references)
+        references = self.retriever.retrieve_embeddings(contents, search_results, search_phrases)
+        print(references)
 
         """Building the insight given the references"""
 
