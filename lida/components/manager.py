@@ -28,7 +28,7 @@ logger = logging.getLogger("lida")
 
 
 class Manager(object):
-    def __init__(self, text_gen: TextGenerator = None) -> None:
+    def __init__(self, serper_api_key = "", qdrant_api_key = "", qdrant_url ="", text_gen: TextGenerator = None) -> None:
         """
         Initialize the Manager object.
 
@@ -51,7 +51,7 @@ class Manager(object):
         self.infographer = None
         self.persona = PersonaExplorer()
         self.prompter = Prompter()
-        self.insight = InsightExplorer()
+        self.insight = InsightExplorer(serper_api_key=serper_api_key, qdrant_api_key=qdrant_api_key, qdrant_url=qdrant_url)
 
     def check_textgen(self, config: TextGenerationConfig):
         """
@@ -213,7 +213,7 @@ class Manager(object):
     def insights(
             self, goal, answers, prompts, description: dict={}, persona: Persona = None, 
             textgen_config: TextGenerationConfig = TextGenerationConfig(),
-            n=5, api_key="", openai_api_key=""):
+            n=5, api_key=""):
         
         if isinstance(goal, dict):
             goal = Goal(**goal)
@@ -226,7 +226,7 @@ class Manager(object):
             persona = Persona(persona=persona, rationale="")
         
         return self.insight.generate(goal=goal, answers=answers, prompts=prompts, persona=persona, description=description,
-            text_gen=self.text_gen, textgen_config=textgen_config, n=n, api_key=api_key,  openai_api_key=openai_api_key)
+            text_gen=self.text_gen, textgen_config=textgen_config, n=n)
     
     def research(
             self, goal, answers, prompts, description: dict={}, persona: Persona = None, 
@@ -244,7 +244,7 @@ class Manager(object):
             persona = Persona(persona=persona, rationale="")
         
         return self.insight.research(goal=goal, answers=answers, prompts=prompts, persona=persona, description=description,
-            text_gen=self.text_gen, textgen_config=textgen_config, n=n, api_key=api_key, openai_api_key=openai_api_key)
+            text_gen=self.text_gen, textgen_config=textgen_config, n=n)
     
     def visualize(
         self,
