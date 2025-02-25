@@ -13,3 +13,4 @@ streamlit
 lxml
 nltk
 qdrant-client
+streamlit-code-editor
