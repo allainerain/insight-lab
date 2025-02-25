@@ -64,7 +64,7 @@ st.sidebar.write("# Setup")
 with st.sidebar.expander("LIDA Version"):
     version = st.selectbox(
         "What version of LIDA do you want to use?", 
-        ("LIDA+", "LIDA++")
+        ("LIDA", "LIDA+", "LIDA++")
     )
 
 with st.sidebar.expander("Generation Settings"):
@@ -279,13 +279,13 @@ if openai_key and selected_dataset:
                 explore = st.pills("Variables to explore", options, selection_mode="multi")
 
                 # Add insight to explore
-                insight_text = st.text_input("Do you have an insight you want LIDA to explore?")
+                insight = []
+                if version != "LIDA":
+                    insight_text = st.text_input("Do you have an insight you want LIDA to explore?")
 
-                # Set insight to None if there's no input
-                if not insight_text.strip(): 
-                    insight = []
-                else:
-                    insight = [Insight(insight=insight_text, evidence={}, index=0)]
+                    # Set insight to None if there's no input
+                    if insight_text.strip(): 
+                        insight = [Insight(insight=insight_text, evidence={}, index=0)]
 
                 # **** lida.goals *****
                 if st.button("Generate"):
@@ -438,8 +438,11 @@ if openai_key and selected_dataset:
                     viz_col1, viz_col2 = st.columns([3,2], gap="medium")
 
                     # Viz ops or prompter
-                    with viz_col2:
-                        viz_ops, prompter = st.tabs(["Viz Ops", "Prompter"])
+                    if version != "LIDA":
+                        with viz_col2:
+                            viz_ops, prompter = st.tabs(["Viz Ops", "Prompter"])
+                    else:
+                        viz_ops = viz_col2
 
                 #################
                 # VIZ OPS
@@ -600,39 +603,40 @@ if openai_key and selected_dataset:
                 #################
                 # PROMPTER
                 #################
-                with prompter:
-                    st.write("### Prompter")
+                if version != "LIDA":
+                    with prompter:
+                        st.write("### Prompter")
 
-                    if version == "LIDA+":
-                        prompter_tab_label = "Prompter and Insight Explorer Settings"
-                        insights_label = "Number of insights to generate"
-
-                    if version == "LIDA++":
-                        prompter_tab_label = "Prompter and Research Assistant Settings"
-                        insights_label = "Number of research to generate"
-
-                    with st.expander(prompter_tab_label):
-                        num_questions = st.number_input("Number of questions to generate", max_value=10, min_value=1, value=5)
-                        num_insights = st.number_input(insights_label, max_value=10, min_value=1, value=5)
-                    
-                    if st.button("Generate Questions"):
-                        st.session_state.prompts = lida.prompt(goal=selected_goal_object, textgen_config=textgen_config, n=num_questions) 
-
-                    
-                    if "prompts" in st.session_state and st.session_state.prompts and st.session_state.prompts is not None:
-                        st.session_state.answers = ["" for _ in st.session_state.prompts]
-                        with st.container(height=300):
-                            for i in range(len(st.session_state.prompts)):
-                                st.session_state.answers[i] = st.text_area(st.session_state.prompts[i].question)
-                        
                         if version == "LIDA+":
-                            if st.button("Generate Insights"):
-                                st.session_state.insights = lida.insights(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights)
+                            prompter_tab_label = "Prompter and Insight Explorer Settings"
+                            insights_label = "Number of insights to generate"
 
                         if version == "LIDA++":
-                            if st.button("Generate Research"):
-                                st.session_state.researches = lida.research(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights)
-                                # print(st.session_state.researches)
+                            prompter_tab_label = "Prompter and Research Assistant Settings"
+                            insights_label = "Number of research to generate"
+
+                        with st.expander(prompter_tab_label):
+                            num_questions = st.number_input("Number of questions to generate", max_value=10, min_value=1, value=5)
+                            num_insights = st.number_input(insights_label, max_value=10, min_value=1, value=5)
+                        
+                        if st.button("Generate Questions"):
+                            st.session_state.prompts = lida.prompt(goal=selected_goal_object, textgen_config=textgen_config, n=num_questions) 
+
+                        
+                        if "prompts" in st.session_state and st.session_state.prompts and st.session_state.prompts is not None:
+                            st.session_state.answers = ["" for _ in st.session_state.prompts]
+                            with st.container(height=300):
+                                for i in range(len(st.session_state.prompts)):
+                                    st.session_state.answers[i] = st.text_area(st.session_state.prompts[i].question)
+                            
+                            if version == "LIDA+":
+                                if st.button("Generate Insights"):
+                                    st.session_state.insights = lida.insights(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights)
+
+                            if version == "LIDA++":
+                                if st.button("Generate Research"):
+                                    st.session_state.researches = lida.research(goal=selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights)
+                                    # print(st.session_state.researches)
 
                 if version == "LIDA+":
                     if "insights" in st.session_state and st.session_state.insights:
