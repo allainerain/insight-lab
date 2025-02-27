@@ -62,8 +62,11 @@ class WebScraper:
         return "\n".join(main_content).strip()
 
     def scrape_url(self, url, rule=0):
-        # Public method to scrape a URL and extract its main content
-        webpage_html = self.get_webpage_html(url)
-        soup = self.convert_html_to_soup(webpage_html)
-        main_content = self.extract_main_content(soup, rule)
-        return main_content
+        try:
+            webpage_html = self.get_webpage_html(url)
+            soup = self.convert_html_to_soup(webpage_html)
+            main_content = self.extract_main_content(soup, rule)
+            return main_content
+        except requests.exceptions.RequestException as e:
+            print(f"Error scraping {url}: {e}")
+            return None 

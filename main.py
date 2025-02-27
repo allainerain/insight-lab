@@ -139,7 +139,7 @@ if openai_key:
     datasets = [
         {"label": "Cars", "url": "https://raw.githubusercontent.com/uwdata/draco/master/data/cars.csv"},
         {"label": "Weather", "url": "https://raw.githubusercontent.com/uwdata/draco/master/data/weather.json"},
-        {"label": "Cyclistic", "path": "notebooks/202201-divvy-tripdata.csv"},  # Changed to local path
+        {"label": "Cyclistic", "path": "notebooks/202201-divvy-tripdata.csv"}, 
     ]
 
     selected_dataset_label = st.pills(
