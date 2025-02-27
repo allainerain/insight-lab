@@ -769,7 +769,7 @@ if openai_key and selected_dataset:
                                 answers=st.session_state.research_answers,
                                 prompts=[p for p in st.session_state.research_prompts if p is not None],
                                 n=num_insights,
-                                api_key=serper_key,
+                                api_key=serper_api_key,
                             )
                             st.session_state.researches.extend(new_research)
                             # Extend answers and prompts lists for new research
