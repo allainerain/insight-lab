@@ -1,7 +1,3 @@
-faiss-cpu
-langchain-openai
-langchain-community
-langchain
 python-dotenv
 llmx
 pandas
