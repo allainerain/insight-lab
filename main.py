@@ -589,17 +589,18 @@ if openai_key and selected_dataset:
                         with st.container(border=True):
                             st.write(saved_insight.insight)
 
-                            for saved_evidence_index, saved_evidence in enumerate(saved_insight.evidence):
-                                st.markdown(
-                                    f"""
-                                    <a href="{saved_insight.evidence[saved_evidence][0]}">
-                                    <p style="font-size:12px; color:gray;">
-                                        [{saved_evidence}]{saved_insight.evidence[saved_evidence][1]}
-                                    </p>
-                                    </a>
-                                    """, 
-                                    unsafe_allow_html=True
-                                )       
+                            if saved_insight.evidence != {}:
+                                for saved_evidence_index, saved_evidence in enumerate(saved_insight.evidence):
+                                    st.markdown(
+                                        f"""
+                                        <a href="{saved_insight.evidence[saved_evidence][0]}">
+                                        <p style="font-size:12px; color:gray;">
+                                            [{saved_evidence}]{saved_insight.evidence[saved_evidence][1]}
+                                        </p>
+                                        </a>
+                                        """, 
+                                        unsafe_allow_html=True
+                                    )       
                             
                                 
                             saved_insights_col1, saved_insights_col2 = st.columns(2)
