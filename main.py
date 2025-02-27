@@ -139,6 +139,7 @@ if openai_key:
     datasets = [
         {"label": "Cars", "url": "https://raw.githubusercontent.com/uwdata/draco/master/data/cars.csv"},
         {"label": "Weather", "url": "https://raw.githubusercontent.com/uwdata/draco/master/data/weather.json"},
+        {"label": "Cyclistic", "path": "notebooks/cyclistic_data.csv"},  # Changed to local path
     ]
 
     selected_dataset_label = st.pills(
@@ -164,9 +165,19 @@ if openai_key:
 
         # st.sidebar.write("Uploaded file path: ", uploaded_file_path)
     elif selected_dataset_label:
-        selected_dataset = datasets[[dataset["label"]
-                                    for dataset in datasets].index(selected_dataset_label)]["url"]
-    
+        selected_dataset_info = datasets[[dataset["label"] 
+                                    for dataset in datasets].index(selected_dataset_label)]
+        
+        if "url" in selected_dataset_info:
+            selected_dataset = selected_dataset_info["url"]
+        elif "path" in selected_dataset_info:
+            selected_dataset = selected_dataset_info["path"]
+            
+            # Handle local file loading
+            if selected_dataset.endswith('.csv'):
+                data = pd.read_csv(selected_dataset)
+            elif selected_dataset.endswith('.json'):
+                data = pd.read_json(selected_dataset)
     else: 
         st.info("To continue, select a dataset from the sidebar on the left or upload your own.")
 
