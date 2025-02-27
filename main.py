@@ -589,9 +589,9 @@ if openai_key and selected_dataset:
                         with st.container(border=True):
                             st.write(saved_insight.insight)
 
-                            if saved_insight.evidence:  
+                            if saved_insight.evidence:
                                 for saved_evidence in saved_insight.evidence:
-                                    evidence_data = saved_insight.evidence.get(saved_evidence, []) 
+                                    evidence_data = saved_insight.evidence.get(saved_evidence, [])
 
                                     if isinstance(evidence_data, (list, tuple)) and len(evidence_data) >= 2:
                                         st.markdown(
