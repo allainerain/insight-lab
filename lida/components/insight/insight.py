@@ -32,6 +32,9 @@ For each insight, follow these guidelines:
 - The insight must be logical and factually correct.
 - All claims should be substantiated with proper evidence.
 - If one of the user's claims are wrong, you must point it out.
+
+IF THERE ARE NO REFERNCES, DO NOT MAKE UP YOUR OWN AND INSTEAD STATE THAT YOU CANNOT FIND REFERENCES.
+KEEP THE "evidence" DICT EMPTY.
 """
 
 FORMAT_INSTRUCTIONS = """
@@ -60,6 +63,8 @@ The questions you ask must be the following
 - Be related to the goal, the visualization given, the provided references, AND THE USER ANSWERS.
 - Clarify domain knowledge of the data ONLY if necessary. If you do this, add an example answer to guide the user.
 
+IF THERE ARE NO REFERNCES, DO NOT MAKE UP YOUR OWN AND INSTEAD STATE THAT YOU CANNOT FIND REFERENCES.
+KEEP THE "evidence" DICT EMPTY.
 """
 
 FORMAT_INSTRUCTIONS_RA = """
