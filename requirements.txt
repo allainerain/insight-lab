@@ -8,6 +8,7 @@ beautifulsoup4
 streamlit
 lxml
 nltk
+streamlit
 qdrant-client
 streamlit-code-editor
 perplexity-api 
