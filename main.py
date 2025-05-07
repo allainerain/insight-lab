@@ -662,16 +662,17 @@ if openai_key and selected_dataset:
                                     # Possible references
                                     with st.expander("Suggested references"):
                                         for evidence_index in research.references:
-                                            st.markdown(
-                                                f"""
-                                                <a href="{researches.references[int(evidence_index)].url}">
-                                                <p style="font-size:12px; color:gray;">
-                                                    [{researches.references[int(evidence_index)].id}]{researches.references[int(evidence_index)].snippet} ({researches.references[int(evidence_index)].name})
-                                                </p>
-                                                </a>
-                                                """, 
-                                                unsafe_allow_html=True
-                                            )     
+                                            if len(researches.references > int(evidence_index)):
+                                                st.markdown(
+                                                    f"""
+                                                    <a href="{researches.references[int(evidence_index)].url}">
+                                                    <p style="font-size:12px; color:gray;">
+                                                        [{researches.references[int(evidence_index)].id}]{researches.references[int(evidence_index)].snippet} ({researches.references[int(evidence_index)].name})
+                                                    </p>
+                                                    </a>
+                                                    """, 
+                                                    unsafe_allow_html=True
+                                                )     
 
                                     # Delete button
                                     if st.button("Delete", key=f"delete_research_{i}"):
