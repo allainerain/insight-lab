@@ -10,3 +10,6 @@ lxml
 nltk
 qdrant-client
 streamlit-code-editor
+perplexity-api 
+perplexity-api-async
+websocket-client
