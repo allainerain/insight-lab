@@ -28,7 +28,7 @@ logger = logging.getLogger("lida")
 
 
 class Manager(object):
-    def __init__(self, serper_api_key = "", qdrant_api_key = "", qdrant_url ="", text_gen: TextGenerator = None) -> None:
+    def __init__(self, text_gen: TextGenerator = None) -> None:
         """
         Initialize the Manager object.
 
@@ -51,7 +51,7 @@ class Manager(object):
         self.infographer = None
         self.persona = PersonaExplorer()
         self.prompter = Prompter()
-        self.insight = InsightExplorer(serper_api_key=serper_api_key, qdrant_api_key=qdrant_api_key, qdrant_url=qdrant_url)
+        self.insight = InsightExplorer()
 
     def check_textgen(self, config: TextGenerationConfig):
         """
@@ -211,40 +211,56 @@ class Manager(object):
             text_gen=self.text_gen, textgen_config=textgen_config, n=n)
     
     def insights(
-            self, goal, answers, prompts, description: dict={}, persona: Persona = None, 
-            textgen_config: TextGenerationConfig = TextGenerationConfig(),
-            n=5, api_key=""):
+            self, goal, answers, prompts, n=5
+        ):
         
         if isinstance(goal, dict):
             goal = Goal(**goal)
         if isinstance(goal, str):
             goal = Goal(question=goal, visualization=goal, rationale="")
 
-        if isinstance(persona, dict):
-            persona = Persona(**persona)
-        if isinstance(persona, str):
-            persona = Persona(persona=persona, rationale="")
+        # if isinstance(persona, dict):
+        #     persona = Persona(**persona)
+        # if isinstance(persona, str):
+        #     persona = Persona(persona=persona, rationale="")
         
-        return self.insight.generate(goal=goal, answers=answers, prompts=prompts, persona=persona, description=description,
-            text_gen=self.text_gen, textgen_config=textgen_config, n=n)
+        return self.insight.generate(goal=goal, answers=answers, prompts=prompts, n=n)     
+        # return self.insight.generate(goal=goal, answers=answers, prompts=prompts, persona=persona, description=description,
+        #     text_gen=self.text
+    # def insights(
+    #         self, goal, answers, prompts, description: dict={}, persona: Persona = None, 
+    #         textgen_config: TextGenerationConfig = TextGenerationConfig(),
+    #         n=5, api_key=""):
+        
+    #     if isinstance(goal, dict):
+    #         goal = Goal(**goal)
+    #     if isinstance(goal, str):
+    #         goal = Goal(question=goal, visualization=goal, rationale="")
+
+    #     if isinstance(persona, dict):
+    #         persona = Persona(**persona)
+    #     if isinstance(persona, str):
+    #         persona = Persona(persona=persona, rationale="")
+        
+    #     return self.insight.generate(goal=goal, answers=answers, prompts=prompts, n=n)     
+    #     # return self.insight.generate(goal=goal, answers=answers, prompts=prompts, persona=persona, description=description,
+    #     #     text_gen=self.text_gen, textgen_config=textgen_config, n=n)
     
     def research(
-            self, goal, answers, prompts, description: dict={}, persona: Persona = None, 
-            textgen_config: TextGenerationConfig = TextGenerationConfig(),
-            n=5, api_key="", openai_api_key=""):
+            self, goal, answers, prompts, n=5
+        ):
         
         if isinstance(goal, dict):
             goal = Goal(**goal)
         if isinstance(goal, str):
             goal = Goal(question=goal, visualization=goal, rationale="")
 
-        if isinstance(persona, dict):
-            persona = Persona(**persona)
-        if isinstance(persona, str):
-            persona = Persona(persona=persona, rationale="")
+        # if isinstance(persona, dict):
+        #     persona = Persona(**persona)
+        # if isinstance(persona, str):
+        #     persona = Persona(persona=persona, rationale="")
         
-        return self.insight.research(goal=goal, answers=answers, prompts=prompts, persona=persona, description=description,
-            text_gen=self.text_gen, textgen_config=textgen_config, n=n)
+        return self.insight.research(goal=goal, answers=answers, prompts=prompts, n=n)
     
     def visualize(
         self,

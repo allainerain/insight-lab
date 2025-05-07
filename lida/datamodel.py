@@ -154,6 +154,35 @@ class Research:
 """
 
 
+@dataclass
+class Reference:
+    id: int
+    name: str
+    url: str
+    snippet: str
+
+@dataclass
+class Answer:
+    index: int
+    text: str
+    references: List[str]
+
+    def _repr_markdown_(self):
+        return f"""
+    ### Research {self.index}
+    ---
+    **Insight:** {self.text}
+
+    **Reference:** {self.references}
+
+    """
+@dataclass
+class PerplexityResearch:
+    answers: List[Answer]
+    references: List[Reference]
+    related_queries: List[str]
+
+
 # VISUALIZATION CLASSES
 
 @dataclass

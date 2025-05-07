@@ -7,7 +7,7 @@ import concurrent.futures
 
 nltk.download('punkt_tab')
 class EmbeddingRetriever:
-    def __init__(self, qdrant_host: str, qdrant_api_key: str):
+    def __init__(self, qdrant_host: str = "https://2e6f3a2c-72b1-4bef-b5e2-b04d1cebdd48.us-west-1-0.aws.cloud.qdrant.io:6333", qdrant_api_key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.Ixq4UY34mswYWbVVnmu2ttJl5PjZAdIXuthvzeSDAHw"):
 
         # Initialize Qdrant client with API key for a remote instance
         self.client = qdrant_client.QdrantClient(
@@ -16,6 +16,8 @@ class EmbeddingRetriever:
         )
 
         self.collection_name = "Collection"
+
+        print(qdrant_host, qdrant_api_key)
         
         # Check if the collection exists before creating it
         existing_collections = self.client.get_collections().collections 
@@ -36,17 +38,28 @@ class EmbeddingRetriever:
         
         return processed_texts
 
+    def split_by_paragraphs(self, contents_list):
+        """Splits text into paragraphs dynamically."""
+        processed_texts = []
+        
+        for content in contents_list:
+            # Split by double or single newlines, depending on the format
+            paragraphs = [p.strip() for p in content.split('\n') if p.strip()]
+            processed_texts.extend(paragraphs)
+        
+        return processed_texts
+
     def retrieve_embeddings(self, contents_list: list, link_list: list, queries: list):
         """Embeds and stores documents in Qdrant for retrieval."""
         
         # Split text into sentence-based chunks
         metadatas = [{'url': link} for link in link_list]
-        processed_texts = self.split_by_sentences(contents_list)
+        processed_texts = self.split_by_paragraphs(contents_list)
         
         # Get Jina embeddings
         headers = {
             "Content-Type": "application/json",
-            "Authorization": "Bearer jina_9971746643d64fd591bf25981e4e4ab3LFNJs8tk6vjvm6MpEgdcjHhNNkaj"
+            "Authorization": "Bearer jina_699bb4adcc274e3482354dc34b53b632XMbQ4kVPcReyJB0G_9YNe6qfI0vK"
         }
         payload = {
             "input": processed_texts,
