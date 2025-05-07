@@ -662,7 +662,7 @@ if openai_key and selected_dataset:
                                     # Possible references
                                     with st.expander("Suggested references"):
                                         for evidence_index in research.references:
-                                            if len(researches.references > int(evidence_index)):
+                                            if len(researches.references) > int(evidence_index):
                                                 st.markdown(
                                                     f"""
                                                     <a href="{researches.references[int(evidence_index)].url}">
