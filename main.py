@@ -56,6 +56,13 @@ if "goals" not in st.session_state:
 if "goal_questions" not in st.session_state:
     st.session_state.goal_questions = []
 
+if "og_dataframe" not in st.session_state:
+    st.session_state.og_dataframe = None
+
+if "dataframe" not in st.session_state:
+    st.session_state.dataframe = None
+
+
 
 selected_dataset = None
 
@@ -122,7 +129,8 @@ if openai_key:
         {"label": "Weather", "url": "https://raw.githubusercontent.com/uwdata/draco/master/data/weather.json"},
         {"label": "Cyclistic", "path": "notebooks/202201-divvy-tripdata.csv"}, 
     ]
-
+    
+    selected_dataset_label_prev = None
     selected_dataset_label = st.pills(
         'Dont have a dataset? Try any of the datasets below:',
         options=[dataset["label"] for dataset in datasets],
@@ -155,14 +163,20 @@ if openai_key:
             # Handle local file loading
             if selected_dataset.endswith('.csv'):
                 data = pd.read_csv(selected_dataset)
+                
             elif selected_dataset.endswith('.json'):
                 data = pd.read_json(selected_dataset)
+                
     else: 
         st.info("To continue, select a dataset from the sidebar on the left or upload your own.")
 
 
 if openai_key and selected_dataset:
-
+    
+    if st.session_state.dataframe is None or not st.session_state.og_dataframe.equals(read_dataframe(selected_dataset)):
+        st.session_state.dataframe = read_dataframe(selected_dataset)
+        st.session_state.og_dataframe = st.session_state.dataframe
+    
     ##############################
     # PERSONA
     ##############################
@@ -173,66 +187,102 @@ if openai_key and selected_dataset:
     ##############################
     # SUMMARIZER
     ##############################
+
     st.write("## Dataset")
-    st.write(read_dataframe(selected_dataset))
+    dataset, summ = st.tabs(["Dataset", "Summary"])
+
+    with dataset:
+        st.write(st.session_state.dataframe)
     
-    st.write("## Dataset Summary")
-    
-    # Select summarization method
-    summarization_methods = [
-        {"label": "default",
-         "description": "Annotate the data summary manually by adding descriptions and semantic types to each column."},
-        {"label": "enrich",
-         "description":"Use the LLM to annotate the data summary by adding descriptions and semantic types to each column. Feel free to edit the annotation of the LLM!"}
-    ]
+    with summ:    
+        # Select summarization method
+        st.write("""A summary of the chosen dataset can be found below, listing the different variables (columns), their descriptions, semantic types, data types, samples, and some univariate statistics.
+        
+        You can also choose to provide additional context to the dataset through the following:
+        - default summarization: manually adding descriptions and semantic types to the colmns.
+        - LLM enrichment: using the LLM to automate adding descriptions and semantic types to the columns.
+        """)
+        
+        summarization_methods = [
+            {"label": "default",
+            "description": "Annotate the data summary manually by adding descriptions and semantic types to each column."},
+            {"label": "enrich",
+            "description":"Use the LLM to annotate the data summary by adding descriptions and semantic types to each column. Feel free to edit the annotation of the LLM!"}
+        ]
 
-    with st.container(border=True):
-        selected_method_label = st.selectbox(
-            'Choose a summarization method',
-            options=[method["label"] for method in summarization_methods],
-            index=0
-        )
+        with st.container(border=True):
+            selected_method_label = st.selectbox(
+                'Choose a summarization method',
+                options=[method["label"] for method in summarization_methods],
+                index=0
+            )
 
-        # add description of selected method in very small font to sidebar
-        selected_summary_method_description = summarization_methods[[
-            method["label"] for method in summarization_methods].index(selected_method_label)]["description"]
-        st.write(selected_summary_method_description)
+            # add description of selected method in very small font to sidebar
+            selected_summary_method_description = summarization_methods[[
+                method["label"] for method in summarization_methods].index(selected_method_label)]["description"]
+            st.write(selected_summary_method_description)
 
-    # **** lida.summarize ****
-    summary = lida.summarize(
-        selected_dataset,
-        summary_method=selected_method_label,
-        textgen_config=textgen_config)
-    
-    # Construct the table
-    if "fields" in summary:
-        fields = summary["fields"]
-        nfields = []
-        for field in fields:
-            flatted_fields = {}
-            flatted_fields["variables"] = field["column"]
-            for row in field["properties"].keys():
-                if row != "samples":
-                    flatted_fields[row] = field["properties"][row]
-                else:
-                    flatted_fields[row] = str(field["properties"][row])
-            nfields.append(flatted_fields)
-        nfields_df = pd.DataFrame(nfields)
+        # **** lida.summarize ****
+        summary = lida.summarize(
+            st.session_state.dataframe,
+            summary_method=selected_method_label,
+            textgen_config=textgen_config)
+        
+        # Construct the table
+        if "fields" in summary:
+            fields = summary["fields"]
+            nfields = []
+            for field in fields:
+                flatted_fields = {}
+                flatted_fields["variables"] = field["column"]
+                for row in field["properties"].keys():
+                    if row != "samples":
+                        flatted_fields[row] = field["properties"][row]
+                    else:
+                        flatted_fields[row] = str(field["properties"][row])
+                nfields.append(flatted_fields)
+            nfields_df = pd.DataFrame(nfields)
 
-        # Move description to the front
-        cols = list(nfields_df.columns)
-        cols.remove("description")
-        cols.insert(1, "description")
-        cols.remove("semantic_type")
-        cols.insert(2, "semantic_type")
-        nfields_df = nfields_df[cols]
+            # Move description to the front
+            cols = list(nfields_df.columns)
+            cols.remove("description")
+            cols.insert(1, "description")
+            cols.remove("semantic_type")
+            cols.insert(2, "semantic_type")
+            nfields_df = nfields_df[cols]
 
-        # Create the editable table
-        disabled_columns = [col for col in nfields_df.columns if col not in ["description", "semantic_type"]]
-        nfields_df = st.data_editor(nfields_df, disabled=disabled_columns) 
+            # Create the editable table
+            disabled_columns = [col for col in nfields_df.columns if col not in ["description", "semantic_type"]]
+            nfields_df = st.data_editor(nfields_df, disabled=disabled_columns) 
 
-    else:
-        st.write(str(summary))
+        else:
+            st.write(str(summary))
+
+    ##############################
+    # TRANSFORMATION
+    ##############################
+    st.write("## Data Transformer")
+    st.write("Transform the dataset by editing the columns (e.g. adding, removing, combining). View changes in the Dataset view found above.")
+
+    tr_LLM, tr_manual = st.tabs(["Automatic", "Manual"])
+    with tr_LLM:
+        instruction = st.text_input("Input your data transformation instructions")
+        if st.button("Transform dataset", "Transform dataset Auto"):
+            st.session_state.dataframe = lida.autotransform(data=st.session_state.dataframe, summary=summary, instructions=[instruction], textgen_config=textgen_config)
+            st.success("Transformation complete", icon="✅")
+            st.rerun(scope="app")
+
+    with tr_manual:
+        trans_code = st.text_area("Input your data transformation code. Below is an example.", """df["NewVariable"] = df["ExistingVariable1"] - df["ExistingVariable2"]""")
+        if st.button("Transform dataset", "Transform dataset Manu"):
+                # selected_vis[0].code = code_edit
+            st.session_state.dataframe = lida.transform(code_specs=[trans_code], data=st.session_state.dataframe, summary=summary)
+            st.success("Transformation complete", icon="✅")
+            st.rerun(scope="app")
+
+    if st.button("Revert dataset"):
+        st.session_state.dataframe = st.session_state.og_dataframe
+        st.rerun(scope="app")
 
     ##############################
     # GOAL EXPLORER
@@ -259,7 +309,7 @@ if openai_key and selected_dataset:
                 num_goals = st.number_input("Number of goals to generate", max_value=10, min_value=1, value=3)
 
                 # Select variables to explore
-                options = list(read_dataframe(selected_dataset))
+                options = list(st.session_state.dataframe)
                 explore = st.pills("Variables to explore", options, selection_mode="multi")
 
                 # Add insight to explore
@@ -339,6 +389,12 @@ if openai_key and selected_dataset:
                                 if goals[goal.index] not in st.session_state.saved_goals:
                                     st.session_state.saved_goals.append(copy.deepcopy(goals[goal.index]))
 
+                        # with goal_col3:
+                        #     # Button for Delete
+                        #     if st.button("Delete", key=f"delete_{goal.index}", use_container_width=True):
+                        #         st.session_state.goals.pop(i)
+                        #         st.rerun(scope="app")
+
             if selected_goal_index != None:
                 st.session_state.selected_goal_object = st.session_state.goals[selected_goal_index]
 
@@ -401,7 +457,6 @@ if openai_key and selected_dataset:
                             goal=st.session_state.selected_goal_object,
                             textgen_config=textgen_config,
                             library="seaborn")
-                        st.session_state.visualization_ready = True
 
                 selected_vis = st.session_state.visualization
 
@@ -437,8 +492,8 @@ if openai_key and selected_dataset:
                     with st.container(border=True):
                         st.write("Encountered a bug? Visualization won't render? Repair the visualization automatically.")
                         if st.button("Repair visualization"):
-                            feedback = lida.evaluate(code=st.session_state.visualization[0].code,  goal=selected_goal_object, textgen_config=textgen_config, library="seaborn")[0] 
-                            st.session_state.visualization = lida.repair(code=selected_vis[0].code, goal=selected_goal_object, summary=summary, feedback=feedback, textgen_config=textgen_config, library="seaborn")
+                            feedback = lida.evaluate(code=st.session_state.visualization[0].code,  goal=st.session_state.selected_goal_object, textgen_config=textgen_config, library="seaborn")[0] 
+                            st.session_state.visualization = lida.repair(code=selected_vis[0].code, goal=st.session_state.selected_goal_object, summary=summary, feedback=feedback, textgen_config=textgen_config, library="seaborn")
 
                     # # VISUALIZATION CODEs
                     # with st.expander("Visualization Code"):
@@ -452,7 +507,7 @@ if openai_key and selected_dataset:
                     #         code_edit = st.text_area('', selected_vis[0].code, height=500)
                     #         if st.button("Edit code"):
                     #             # selected_vis[0].code = code_edit
-                    #             st.session_state.visualization = lida.execute(code_specs=[code_edit], data=read_dataframe(selected_dataset), summary=summary, library="seaborn")
+                    #             st.session_state.visualization = lida.execute(code_specs=[code_edit], data=st.session_state.dataframe, summary=summary, library="seaborn")
                     #             selected_vis = st.session_state.visualization
 
                               
@@ -475,8 +530,8 @@ if openai_key and selected_dataset:
                     # if there is no raster, then repair automatically
                     else:
                         with st.spinner("Generating visualization..."):
-                            feedback = lida.evaluate(code=st.session_state.visualization[0].code, goal=selected_goal_object, textgen_config=textgen_config, library="seaborn")[0] 
-                            st.session_state.visualization = lida.repair(code=st.session_state.visualization[0].code, goal=selected_goal_object, summary=summary, feedback=feedback, textgen_config=textgen_config, library="seaborn")
+                            feedback = lida.evaluate(code=st.session_state.visualization[0].code, goal=st.session_state.selected_goal_object, textgen_config=textgen_config, library="seaborn")[0] 
+                            st.session_state.visualization = lida.repair(code=st.session_state.visualization[0].code, goal=st.session_state.selected_goal_object, summary=summary, feedback=feedback, textgen_config=textgen_config, library="seaborn")
 
                     if st.button("Save Visualization to Notebook"):
                         if st.session_state.visualization not in st.session_state.saved_visualizations:
@@ -492,14 +547,14 @@ if openai_key and selected_dataset:
                             code_edited = st.text_area('', st.session_state.visualization[0].code, height=500)
                             if st.button("Edit code"):
                                 # selected_vis[0].code = code_edit
-                                st.session_state.visualization = lida.execute(code_specs=[code_edited], data=read_dataframe(selected_dataset), summary=summary, library="seaborn")
+                                st.session_state.visualization = lida.execute(code_specs=[code_edited], data=st.session_state.dataframe, summary=summary, library="seaborn")
                                 st.rerun(scope="app")
                             # print("A", st.session_state.visualization[0].code)
                             # print("B",code_response_dict["text"], "C")
                             # print()
                             # if st.session_state.visualization[0].code != code_response_dict["text"] and code_response_dict["text"] != "  ":
                             #     selected_vis[0].code = code_response_dict["text"]
-                            #     st.session_state.visualization = lida.execute(code_specs=[code_response_dict["text"]], data=read_dataframe(selected_dataset), summary=summary, library="seaborn")
+                            #     st.session_state.visualization = lida.execute(code_specs=[code_response_dict["text"]], data=st.session_state.dataframe, summary=summary, library="seaborn")
                             #     selected_vis = st.session_state.visualization                    
                 
                 # VISUALIZATION TAB

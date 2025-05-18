@@ -20,6 +20,7 @@ from ..components.executor import ChartExecutor
 from ..components.prompter import Prompter
 from ..components.insight.insight import InsightExplorer
 from ..components.viz import VizGenerator, VizEditor, VizExplainer, VizEvaluator, VizRepairer, VizRecommender
+from ..components.transformer import DataTransformer, DataAutoTransformer
 
 import lida.web as lida
 
@@ -52,6 +53,8 @@ class Manager(object):
         self.persona = PersonaExplorer()
         self.prompter = Prompter()
         self.insight = InsightExplorer()
+        self.transformer = DataTransformer()
+        self.autotransformer = DataAutoTransformer()
 
     def check_textgen(self, config: TextGenerationConfig):
         """
@@ -390,6 +393,79 @@ class Manager(object):
             return_error=return_error,
         )
         return charts
+
+    def autotransform(
+        self,
+        data,
+        summary: Summary,
+        instructions: List[str],
+        textgen_config: TextGenerationConfig = TextGenerationConfig(),
+        return_error: bool = False,
+    ):
+        """Edit a visualization code given a set of instructions
+
+        Args:
+            code (_type_): _description_
+            instructions (List[Dict]): A list of instructions
+
+        Returns:
+            _type_: _description_
+        """
+
+        self.check_textgen(config=textgen_config)
+
+        if isinstance(instructions, str):
+            instructions = [instructions]
+
+        if data is None:
+            root_file_path = os.path.dirname(os.path.abspath(lida.__file__))
+            print(root_file_path)
+            data = read_dataframe(
+                os.path.join(root_file_path, "files/data", summary.file_name)
+            )
+
+        # col_properties = summary.properties
+
+        code_specs = self.autotransformer.generate(
+            instructions=instructions,
+            data=data,
+            summary=summary,
+            textgen_config=textgen_config,
+            text_gen=self.text_gen,
+        )
+
+        print(code_specs[0])
+
+        return self.transformer.execute(
+            code_specs=code_specs,
+            data=data,
+            summary=summary,
+            return_error=return_error,
+        )
+
+    def transform(
+        self,
+        code_specs,
+        data,
+        summary: Summary,
+        return_error: bool = False,
+    ):
+
+        if data is None:
+            root_file_path = os.path.dirname(os.path.abspath(lida.__file__))
+            print(root_file_path)
+            data = read_dataframe(
+                os.path.join(root_file_path, "files/data", summary.file_name)
+            )
+
+        # col_properties = summary.properties
+
+        return self.transformer.execute(
+            code_specs=code_specs,
+            data=data,
+            summary=summary,
+            return_error=return_error,
+        )
 
     def explain(
         self,
