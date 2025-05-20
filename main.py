@@ -29,7 +29,12 @@ st.set_page_config(
 )
 
 st.write("# InsightLab: Exploratory Data Analysis Assistant 📊")
-openai_key = os.getenv("OPENAI_API_KEY")
+
+# New way using st.secrets
+try:
+    openai_key = st.secrets["OPENAI_API_KEY"]
+except KeyError:
+    openai_key = None
 
 ##############################
 # INITIALIZE STATES
@@ -82,11 +87,14 @@ with st.sidebar.expander("Generation Settings"):
 
     # Set openai key
     st.write("#### OpenAI Key")
-    openai_key = st.text_input("## Enter OpenAI API key")
+    # openai_key = st.text_input("## Enter OpenAI API key")
 
     if openai_key:
-        display_openai_key = openai_key[:2] + "*" * (len(openai_key) - 5) + openai_key[-3:]
-        st.write(f"Current key: {display_openai_key}")
+        # display_openai_key = openai_key[:2] + "*" * (len(openai_key) - 5) + openai_key[-3:]
+        # st.write(f"Current key: {display_openai_key}")
+        st.write("OpenAI API key loaded successfully via Streamlit secrets.")
+    else:
+        st.error("OpenAI API key not found. Please set it in your Streamlit secrets. For local development, add it to .streamlit/secrets.toml (e.g., OPENAI_API_KEY = \"your_key_here\"). For deployed apps, set it in the app settings.")
 
     # Set model settings
     st.write("#### Text Generation Model")
