@@ -11,7 +11,7 @@ import sys
 sys.path.append(os.path.abspath('..'))
 from llmx import llm, TextGenerationConfig, TextGenerator
 from lida.components import Manager
-from lida.datamodel import Goal, Persona, Insight, Prompt
+from lida.datamodel import Goal, Persona, Insight, Prompt, Answer
 from lida.utils import read_dataframe
 # from code_editor import code_editor
 
@@ -67,6 +67,8 @@ if "og_dataframe" not in st.session_state:
 if "dataframe" not in st.session_state:
     st.session_state.dataframe = None
 
+if "dataset_index" not in st.session_state:
+    st.session_state.dataset_index = -1
 
 
 selected_dataset = None
@@ -138,7 +140,6 @@ if openai_key:
         {"label": "Cyclistic", "path": "notebooks/202201-divvy-tripdata.csv"}, 
     ]
     
-    selected_dataset_label_prev = None
     selected_dataset_label = st.pills(
         'Dont have a dataset? Try any of the datasets below:',
         options=[dataset["label"] for dataset in datasets],
@@ -180,8 +181,9 @@ if openai_key:
 
 
 if openai_key and selected_dataset:
-    
-    if st.session_state.dataframe is None or not st.session_state.og_dataframe.equals(read_dataframe(selected_dataset)):
+    # if st.session_state.dataframe is None or not st.session_state.og_dataframe.equals(read_dataframe(selected_dataset)):
+    if st.session_state.dataset_index != selected_dataset_label:
+        st.session_state.dataset_index = selected_dataset_label
         st.session_state.dataframe = read_dataframe(selected_dataset)
         st.session_state.og_dataframe = st.session_state.dataframe
     
@@ -201,6 +203,7 @@ if openai_key and selected_dataset:
 
     with dataset:
         st.write(st.session_state.dataframe)
+        # print(st.session_state.dataframe)
     
     with summ:    
         # Select summarization method
@@ -277,10 +280,13 @@ if openai_key and selected_dataset:
         instruction = st.text_input("Input your data transformation instructions")
         if st.button("Transform dataset", "Transform dataset Auto"):
             st.session_state.dataframe = lida.autotransform(data=st.session_state.dataframe, summary=summary, instructions=[instruction], textgen_config=textgen_config)
+            # print(st.session_state.dataframe)
             st.success("Transformation complete", icon="✅")
             st.rerun(scope="app")
 
     with tr_manual:
+        # st.write("See the [Pandas](%s) documentation for more details.")
+        st.write("See the [Pandas DataFrame](%s) documentation for more details." % "https://pandas.pydata.org/docs/reference/frame.html")
         trans_code = st.text_area("Input your data transformation code. Below is an example.", """df["NewVariable"] = df["ExistingVariable1"] - df["ExistingVariable2"]""")
         if st.button("Transform dataset", "Transform dataset Manu"):
                 # selected_vis[0].code = code_edit
@@ -477,11 +483,13 @@ if openai_key and selected_dataset:
                     viz_col1, viz_col2 = st.columns([3,2], gap="medium")
 
                     # Viz ops or prompter
-                    if version != "InsightLab":
-                        with viz_col2:
-                            viz_ops, prompter = st.tabs(["Viz Ops", "Prompter"])
-                    else:
-                        viz_ops = viz_col2
+                    # if version != "InsightLab":
+                    #     with viz_col2:
+                    #         viz_ops, prompter = st.tabs(["Viz Ops", "Prompter"])
+                    # else:
+                        # viz_ops = viz_col2
+                    with viz_col2:
+                        viz_ops, code_display, code_edit = st.tabs(["Viz Ops", "Code", "Code Editor"])
 
                 #################
                 # VIZ OPS
@@ -545,25 +553,26 @@ if openai_key and selected_dataset:
                         if st.session_state.visualization not in st.session_state.saved_visualizations:
                             st.session_state.saved_visualizations.append(copy.deepcopy(st.session_state.visualization))
                     
-                    with st.expander("Visualization Code"):
-                        code_display, code_edit = st.tabs(["Code", "Code Editor"])
-                        with code_display:
+                    # with st.expander("Visualization Code"):
+                    #     code_display, code_edit = st.tabs(["Code", "Code Editor"])
+                    with code_display:
+                        with st.container(height = 500):
                             st.code(st.session_state.visualization[0].code)
-                        with code_edit:
-                            # custom_btns = [{"name": "Edit Code","feather": "Play","primary": True,"hasText": True,"showWithIcon": True,"commands": ["submit"],"style": {"bottom": "0.44rem","right": "0.4rem"}}]
-                            # code_response_dict = code_editor(selected_vis[0].code, height="500px", buttons=custom_btns)
-                            code_edited = st.text_area('', st.session_state.visualization[0].code, height=500)
-                            if st.button("Edit code"):
-                                # selected_vis[0].code = code_edit
-                                st.session_state.visualization = lida.execute(code_specs=[code_edited], data=st.session_state.dataframe, summary=summary, library="seaborn")
-                                st.rerun(scope="app")
-                            # print("A", st.session_state.visualization[0].code)
-                            # print("B",code_response_dict["text"], "C")
-                            # print()
-                            # if st.session_state.visualization[0].code != code_response_dict["text"] and code_response_dict["text"] != "  ":
-                            #     selected_vis[0].code = code_response_dict["text"]
-                            #     st.session_state.visualization = lida.execute(code_specs=[code_response_dict["text"]], data=st.session_state.dataframe, summary=summary, library="seaborn")
-                            #     selected_vis = st.session_state.visualization                    
+                    with code_edit:
+                        # custom_btns = [{"name": "Edit Code","feather": "Play","primary": True,"hasText": True,"showWithIcon": True,"commands": ["submit"],"style": {"bottom": "0.44rem","right": "0.4rem"}}]
+                        # code_response_dict = code_editor(selected_vis[0].code, height="500px", buttons=custom_btns)
+                        code_edited = st.text_area('', st.session_state.visualization[0].code, height=500)
+                        if st.button("Edit code"):
+                            # selected_vis[0].code = code_edit
+                            st.session_state.visualization = lida.execute(code_specs=[code_edited], data=st.session_state.dataframe, summary=summary, library="seaborn")
+                            st.rerun(scope="app")
+                        # print("A", st.session_state.visualization[0].code)
+                        # print("B",code_response_dict["text"], "C")
+                        # print()
+                        # if st.session_state.visualization[0].code != code_response_dict["text"] and code_response_dict["text"] != "  ":
+                        #     selected_vis[0].code = code_response_dict["text"]
+                        #     st.session_state.visualization = lida.execute(code_specs=[code_response_dict["text"]], data=st.session_state.dataframe, summary=summary, library="seaborn")
+                        #     selected_vis = st.session_state.visualization                    
                 
                 # VISUALIZATION TAB
                 with saved_viz_tab:
@@ -594,38 +603,38 @@ if openai_key and selected_dataset:
                 # PROMPTER
                 ##############################
                 if version != "InsightLab":
-                    with prompter:
-                        st.write("### Prompter")
+                    # with prompter:
+                    st.write("### Prompter")
 
+                    if version == "InsightLab with Insight Explorer":
+                        prompter_tab_label = "Prompter and Insight Explorer Settings"
+                        insights_label = "Number of insights to generate"
+
+                    if version == "InsightLab with Prober":
+                        prompter_tab_label = "Prompter and Research Assistant Settings"
+                        insights_label = "Number of research to generate"
+
+                    with st.expander(prompter_tab_label):
+                        num_questions = st.number_input("Number of questions to generate", max_value=10, min_value=1, value=3)
+                        num_insights = st.number_input(insights_label, max_value=10, min_value=1, value=3)
+                    
+                    if st.button("Generate Questions"):
+                        st.session_state.prompts = lida.prompt(goal=st.session_state.selected_goal_object, textgen_config=textgen_config, n=num_questions) 
+
+                    if "prompts" in st.session_state and st.session_state.prompts and st.session_state.prompts is not None:
+                        st.session_state.answers = ["" for _ in st.session_state.prompts]
+                        with st.container(height=400):
+                            for i in range(len(st.session_state.prompts)):
+                                st.session_state.answers[i] = st.text_area(st.session_state.prompts[i].question)
+                        
                         if version == "InsightLab with Insight Explorer":
-                            prompter_tab_label = "Prompter and Insight Explorer Settings"
-                            insights_label = "Number of insights to generate"
+                            if st.button("Generate Insights"):
+                                st.session_state.insights = lida.insights(goal=st.session_state.selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights)
 
                         if version == "InsightLab with Prober":
-                            prompter_tab_label = "Prompter and Research Assistant Settings"
-                            insights_label = "Number of research to generate"
-
-                        with st.expander(prompter_tab_label):
-                            num_questions = st.number_input("Number of questions to generate", max_value=10, min_value=1, value=5)
-                            num_insights = st.number_input(insights_label, max_value=10, min_value=1, value=5)
-                        
-                        if st.button("Generate Questions"):
-                            st.session_state.prompts = lida.prompt(goal=st.session_state.selected_goal_object, textgen_config=textgen_config, n=num_questions) 
-
-                        if "prompts" in st.session_state and st.session_state.prompts and st.session_state.prompts is not None:
-                            st.session_state.answers = ["" for _ in st.session_state.prompts]
-                            with st.container(height=300):
-                                for i in range(len(st.session_state.prompts)):
-                                    st.session_state.answers[i] = st.text_area(st.session_state.prompts[i].question)
-                            
-                            if version == "InsightLab with Insight Explorer":
-                                if st.button("Generate Insights"):
-                                    st.session_state.insights = lida.insights(goal=st.session_state.selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights)
-
-                            if version == "InsightLab with Prober":
-                                if st.button("Generate Research"):
-                                    st.session_state.researches = lida.research(goal=st.session_state.selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights)
-                                    # print(st.session_state.researches)
+                            if st.button("Generate Research"):
+                                st.session_state.researches = lida.research(goal=st.session_state.selected_goal_object, answers=st.session_state.answers, prompts=st.session_state.prompts, n=num_insights)
+                                # print(st.session_state.researches)
 
                 ##############################
                 # INSIGHT EXPLORER
@@ -764,7 +773,8 @@ if openai_key and selected_dataset:
                     st.write("## Insight")
 
                     new_insight_text = st.text_area("Add insight here")
-                    new_insight = Insight(insight=new_insight_text, evidence={}, index=0)
+                    # new_insight = Insight(insight=new_insight_text, evidence={}, index=0)
+                    new_insight = {"insight": Answer(index=0,text=str(new_insight_text),references=[]), "references": []}
 
                     if new_insight not in st.session_state.saved_insights and new_insight_text != "":
                         st.session_state.saved_insights.append(new_insight)
@@ -772,10 +782,10 @@ if openai_key and selected_dataset:
 
                 with saved_insights_tab:
                     new_custom_insight = st.text_area("Add a custom insight here")
-                    new_custom_insight_object = Insight(insight=new_custom_insight, evidence={}, index=0)
+                    # new_custom_insight_object = Insight(insight=new_custom_insight, evidence={}, index=0)
+                    new_custom_insight_object = {"insight": Answer(index=0,text=str(new_custom_insight),references=[]), "references": []}
                     if new_custom_insight_object not in st.session_state.saved_insights and new_custom_insight != "":
                         st.session_state.saved_insights.append(new_custom_insight_object)
-
                     for saved_insight_index, saved_insight in enumerate(st.session_state.saved_insights):
                         with st.container(border=True):
                             st.write(saved_insight["insight"].text)

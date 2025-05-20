@@ -38,10 +38,13 @@ class Summarizer():
             try:
                 return int(value)
             except:
-                value_dict = {}
-                for attribute, value in value.items():
-                    value_dict[attribute] = value
-                return value_dict
+                try:
+                    value_dict = {}
+                    for attribute, value in value.items():
+                        value_dict[attribute] = value
+                    return value_dict
+                except:
+                    print("kurtosis")
         else:
             value_dict = {}
             for attribute, value in value.items():
@@ -73,6 +76,8 @@ class Summarizer():
                         properties["dtype"] = "category"
                     else:
                         properties["dtype"] = "string"
+                except TypeError:
+                    properties["dtype"] = "string"
             elif pd.api.types.is_categorical_dtype(df[column]):
                 properties["dtype"] = "category"
             elif pd.api.types.is_datetime64_any_dtype(df[column]):
