@@ -108,6 +108,7 @@ class DataTransformer:
             summary = Summary(**summary)
 
         df = data
+        feedback = None
         code_spec_copy = code_specs.copy()
         code_specs = [preprocess_code(code) for code in code_specs]
 
@@ -126,9 +127,12 @@ class DataTransformer:
                 print(code_spec_copy[0])
                 print("****\n", str(exception_error))
                 print(traceback.format_exc())
+                feedback = "ERROR\n\n" +  "****\n" + str(exception_error)
                 # if return_error:
 
-        return df
+        hide = '''import pandas as pd\n\ndf = data.copy()'''
+
+        return df, {"feedback": feedback, "code": code_spec_copy[0].replace(hide, '')}
 
 
 system_prompt = """

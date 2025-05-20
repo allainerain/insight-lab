@@ -61,14 +61,22 @@ if "goals" not in st.session_state:
 if "goal_questions" not in st.session_state:
     st.session_state.goal_questions = []
 
+
 if "og_dataframe" not in st.session_state:
     st.session_state.og_dataframe = None
 
 if "dataframe" not in st.session_state:
     st.session_state.dataframe = None
 
+
 if "dataset_index" not in st.session_state:
     st.session_state.dataset_index = -1
+
+
+if "transform" not in st.session_state:
+    st.session_state.transform = {"feedback": None, "code": None}
+
+
 
 
 selected_dataset = None
@@ -273,15 +281,14 @@ if openai_key and selected_dataset:
     # TRANSFORMATION
     ##############################
     st.write("## Data Transformer")
-    st.write("Transform the dataset by editing the columns (e.g. adding, removing, combining). View changes in the Dataset view found above.")
-
+    st.write("Transform the dataset by editing the columns or rows (e.g. adding, removing, combining, filtering). View changes in the Dataset view found above.")
+    
     tr_LLM, tr_manual = st.tabs(["Automatic", "Manual"])
     with tr_LLM:
         instruction = st.text_input("Input your data transformation instructions")
         if st.button("Transform dataset", "Transform dataset Auto"):
-            st.session_state.dataframe = lida.autotransform(data=st.session_state.dataframe, summary=summary, instructions=[instruction], textgen_config=textgen_config)
+            st.session_state.dataframe, st.session_state.transform = lida.autotransform(data=st.session_state.dataframe, summary=summary, instructions=[instruction], textgen_config=textgen_config)
             # print(st.session_state.dataframe)
-            st.success("Transformation complete", icon="✅")
             st.rerun(scope="app")
 
     with tr_manual:
@@ -290,12 +297,18 @@ if openai_key and selected_dataset:
         trans_code = st.text_area("Input your data transformation code. Below is an example.", """df["NewVariable"] = df["ExistingVariable1"] - df["ExistingVariable2"]""")
         if st.button("Transform dataset", "Transform dataset Manu"):
                 # selected_vis[0].code = code_edit
-            st.session_state.dataframe = lida.transform(code_specs=[trans_code], data=st.session_state.dataframe, summary=summary)
-            st.success("Transformation complete", icon="✅")
+            st.session_state.dataframe, st.session_state.transform = lida.transform(code_specs=[trans_code], data=st.session_state.dataframe, summary=summary)
             st.rerun(scope="app")
+    
+    if(st.session_state.transform["code"]):
+        st.code(st.session_state.transform["code"])
+
+    if(st.session_state.transform["feedback"]):
+        st.code(st.session_state.transform["feedback"])
 
     if st.button("Revert dataset"):
         st.session_state.dataframe = st.session_state.og_dataframe
+        st.session_state.transform = {"feedback": None, "code": None}
         st.rerun(scope="app")
 
     ##############################
