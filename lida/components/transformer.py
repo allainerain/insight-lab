@@ -108,7 +108,7 @@ class DataTransformer:
             summary = Summary(**summary)
 
         df = data
-        feedback = None
+        feedback = "Code Execution Successful"
         code_spec_copy = code_specs.copy()
         code_specs = [preprocess_code(code) for code in code_specs]
 
