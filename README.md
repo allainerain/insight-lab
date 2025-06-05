@@ -181,12 +181,12 @@ Given answers to prompts, search the web for relevant references and generate su
 insights = lida.insights(goal=goal, answers=answers, prompts=promts,  textgen_config=textgen_config)
 ```
 
-### Research
+### Probing
 
 Given answers to prompts, search the web for relevant references and suggest more probing questions.
 
 ```python
-research = lida.research(goal=goal, answers=answers, prompts=promts, textgen_config=textgen_config)
+probing_questions = lida.research(goal=goal, answers=answers, prompts=promts, textgen_config=textgen_config)
 ```
 
 ## Documentation and Citation
