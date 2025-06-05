@@ -1,8 +1,8 @@
-# 📊 LIDA++: Facilitating Insight Discovery using Large Language Models
+# 📊 InsightLab: Facilitating Insight Discovery using Large Language Models
 
 This project is build on LIDA. LIDA is a library for generating data visualizations and data-faithful infographics. LIDA is grammar agnostic (will work with any programming language and visualization libraries e.g. matplotlib, seaborn, altair, d3 etc) and works with multiple large language model providers (OpenAI, Azure OpenAI, PaLM, Cohere, Huggingface).
 
-LIDA++ aims to improve on the capabilities of LIDA by introducing new modules for insight discovery.
+InsightLab aims to improve on the capabilities of LIDA by introducing new modules for insight discovery.
 
 > **Original research on LIDA**
 > Details on the original components of LIDA are described in the [paper here](https://arxiv.org/abs/2303.02927) and in this tutorial [notebook](notebooks/tutorial.ipynb). See the project page [here](https://microsoft.github.io/lida/) for updates!.
@@ -16,9 +16,7 @@ LIDA++ aims to improve on the capabilities of LIDA by introducing new modules fo
 1. **Features**
 
    - [1.1. Updated LIDA Library Features](#updated-lida-library-features)
-   - [1.2. WebApp Features](#webapp-features)
-     - [1.2.1. LIDA+: Partially Automated Insight Generation for Insight Discovery](#lida-partially-automated-insight-generation-for-insight-discovery)
-     - [1.2.2. LIDA+: Assistant for Insight Discovery Without Directly Generating Insights](#lida-assistant-for-insight-discovery-without-directly-generating-insights)
+   - [1.2. InsightLab Workflows](#insightlab-workflows)
 
 2. **Getting Started**
 
@@ -37,6 +35,7 @@ This work has two parts: a library and a web app. The library can be accessed in
 LIDA treats _**visualizations as code**_ and provides a clean api for generating, executing, editing, explaining, evaluating and repairing visualization code.
 
 - [x] Data Summarization
+- [x] Data Transformation
 - [x] Goal Generation
 - [x] Visualization Generation
 - [x] Visualization Editing
@@ -46,17 +45,9 @@ LIDA treats _**visualizations as code**_ and provides a clean api for generating
 - [x] Insight Generation
 - [x] Insight Discovery Research
 
-### WebApp features
+#### InsightLab Workflows
 
-For the webapp, we present two workflows built from the modified LIDA library: LIDA+ and LIDA++.
-
-#### LIDA+: Partially automated insight generation for insight discovery
-
-<image src="./docs/images/LIDA+.png">
-
-#### LIDA+: Assistant for insight discovery without directly generating insights
-
-<image src="./docs/images/LIDA++.png">
+![InsightLab](https://github.com/user-attachments/assets/da65afbb-7b69-42f2-883d-4b91230ebc1c)
 
 ## Getting Started with the Web App
 
@@ -82,18 +73,10 @@ pip install -U llmx openai
 
 ### Set environment variables
 
-1. Create a .env file with the following
+Create a .env file with the following
 
 ```python
 OPENAI_APIKEY = "sk-xxxxxxx"
-SERPER_APIKEY = "xxxx"
-```
-
-2. Add a `config` folder containing a `config.yaml` file in `lida/components/insight` containing the following information:
-
-```python
-openai_api_key: "sk-xxxxxxx"
-serper_api_key: "xxxx"
 ```
 
 ### Run the web app
@@ -105,7 +88,7 @@ streamlit run main.py
 
 ## Getting Started with the Library
 
-The fastest and recommended way to learn about LIDA++'s capabilities is through the [LIDA+ and LIDA++ handbook notebook](notebooks/handbook/handbook.ipynb).
+The fastest and recommended way to learn about InsightLab's capabilities is through the [InsightLab handbook notebook](notebooks/handbook/handbook.ipynb).
 
 ## Library Methods
 
@@ -118,6 +101,20 @@ from lida import Manager
 
 lida = Manager()
 summary = lida.summarize("data/cars.json") # generate data summary
+```
+
+### Data Transformation
+
+Given natural language, transform the dataset.
+
+```python
+new_dataset = lida.autotransform(data, summary, instructions="add a new column for profit", textgen_config=textgen_config)
+```
+
+Given code, transform the dataset.
+
+```python
+new_dataset = lida.transform(code_specs="code", data, summary)
 ```
 
 ### Goal Generation
@@ -181,7 +178,7 @@ prompts = lida.prompt(goal=goal, textgen_config=textgen_config)
 Given answers to prompts, search the web for relevant references and generate suggested insights.
 
 ```python
-insights = lida.insights(goal=goal, answers=answers, prompts=promts,  textgen_config=textgen_config, api_key="SERPER_APIKEY")
+insights = lida.insights(goal=goal, answers=answers, prompts=promts,  textgen_config=textgen_config)
 ```
 
 ### Research
@@ -189,7 +186,7 @@ insights = lida.insights(goal=goal, answers=answers, prompts=promts,  textgen_co
 Given answers to prompts, search the web for relevant references and suggest more probing questions.
 
 ```python
-research = lida.research(goal=goal, answers=answers, prompts=promts,textgen_config=textgen_config, api_key="SERPER_APIKEY")
+research = lida.research(goal=goal, answers=answers, prompts=promts, textgen_config=textgen_config)
 ```
 
 ## Documentation and Citation
