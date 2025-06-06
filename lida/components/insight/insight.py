@@ -3,8 +3,8 @@ import logging
 from lida.utils import clean_code_snippet
 from llmx import TextGenerator, TextGenerationConfig
 from lida.datamodel import Goal, Prompt, Insight, Persona, Research, Reference, Answer, PerplexityResearch
-from ..insight.webscraper import WebScraper
-from ..insight.retrieval import EmbeddingRetriever
+# from ..insight.webscraper import WebScraper
+# from ..insight.retrieval import EmbeddingRetriever
 from ..insight.search import Searcher
 import concurrent.futures
 import re

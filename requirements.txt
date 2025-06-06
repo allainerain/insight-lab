@@ -1,16 +1,9 @@
-python-dotenv
 llmx
 pandas
 matplotlib
 plotly
 seaborn
-beautifulsoup4
 streamlit
-lxml
-nltk
 streamlit
-qdrant-client
-streamlit-code-editor
 perplexity-api 
 perplexity-api-async
-websocket-client

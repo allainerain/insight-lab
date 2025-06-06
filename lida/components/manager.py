@@ -40,7 +40,12 @@ class Manager(object):
         self.text_gen = text_gen or llm()
 
         self.summarizer = Summarizer()
+        
+        self.transformer = DataTransformer()
+        self.autotransformer = DataAutoTransformer()
+        
         self.goal = GoalExplorer()
+
         self.vizgen = VizGenerator()
         self.vizeditor = VizEditor()
         self.executor = ChartExecutor()
@@ -48,13 +53,13 @@ class Manager(object):
         self.evaluator = VizEvaluator()
         self.repairer = VizRepairer()
         self.recommender = VizRecommender()
+        
         self.data = None
         self.infographer = None
+        
         self.persona = PersonaExplorer()
         self.prompter = Prompter()
         self.insight = InsightExplorer()
-        self.transformer = DataTransformer()
-        self.autotransformer = DataAutoTransformer()
 
     def check_textgen(self, config: TextGenerationConfig):
         """
